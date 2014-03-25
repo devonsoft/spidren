@@ -230,7 +230,7 @@ void draw() {
         popMatrix();
     
     the_screenShakeTimer -= 1 / 30.0;
-    if (the_screenShakeTimer > 0 && frameCount % 2 == 0)
+    if (the_screenShakeTimer > 0)
     {
       imageMode(CENTER);
       float offset = 20 * the_screenShakeTimer;
