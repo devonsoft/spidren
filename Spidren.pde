@@ -252,7 +252,7 @@ void draw() {
       textSize(80);
       fill(#3a0e05);
       
-      text("THE CHILD BECOMES THE PARENT.", width/2 + random(-5, 5), height/2 + random(-5, 5));  
+      text("THE CHILD BECOMES THE PARENT", width/2 + random(-5, 5), height/2 + random(-5, 5));  
     }
   }
   else if (the_gameState == WIN_STATE)
@@ -269,7 +269,7 @@ void draw() {
       textAlign(CENTER, CENTER);
       textSize(80);
       fill(#3a0e05);
-      text("YOU CAN BREED AGAIN.", width/2 + random(-5, 5), height/2 + random(-5, 5));  
+      text("YOU CAN BREED AGAIN", width/2 + random(-5, 5), height/2 + random(-5, 5));  
      }
   }
 }
