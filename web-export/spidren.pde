@@ -1,13 +1,15 @@
-
+/* @pjs font="AmaticSC-Regular.ttf"; */
+/* @pjs preload="background.png, grass.png, keyboard.png, babby.png, body0.png, body1.png, head.png, leg0.png, leg1.png, leg2.png, mandible.png"; */
 
 int MENU_STATE_00 = 0;
 int MENU_STATE_01 = 1;
+int MENU_STATE_02 = 2;
 
 //int MENU_STATE = 0;
 //int MENU_STATE = 0;
-int PLAY_STATE = 2;
-int GAMEOVER_STATE = 3;
-int WIN_STATE = 4;
+int PLAY_STATE = 3;
+int GAMEOVER_STATE = 4;
+int WIN_STATE = 5;
 
 int BABBY_COUNT = 1;
 
@@ -16,6 +18,7 @@ BabbySpider[] the_babbySpiders = new BabbySpider[BABBY_COUNT];
 Spider the_spider;
 float the_ground;
 PImage the_grass;
+PImage the_pink;
 float the_screenShakeTimer = 0;
 PFont the_font;
 boolean the_doOnce = true;
@@ -30,6 +33,7 @@ void setup()
   the_grass = requestImage("grass.png");
   the_font = createFont("Amatic SC Regular", 32);
   the_keyboardImage = requestImage("keyboard.png");
+  the_pink = requestImage("background.png");
   //gameStart();
 }
 
@@ -52,7 +56,7 @@ void draw() {
     textAlign(CENTER, CENTER);
     textSize(128);
     fill(#3a0e05);
-    text("I AM THE DEATH", width/2 + random(-5, 5), height/2 + random(-5, 5));
+    text("SPIDREN", width/2 + random(-5, 5), height/2 + random(-5, 5));
     textSize(64);
     text("@devonsoft", width/2 + random(-5, 5), height/2 + random(-5, 5) + 100);
   }
@@ -60,8 +64,22 @@ void draw() {
   {
     drawGradient(0, width, 0, height, 255);
     if (the_keyboardImage.width > 0)
-    imageMode(CORNER);
-    image(the_keyboardImage, 0, 0, width, height);
+    {
+      imageMode(CORNER);
+      image(the_keyboardImage, 0, 0, width, height);
+    }
+  }
+  else if (the_gameState == MENU_STATE_02)
+  {
+    drawGradient(0, width, 0, height, 255);
+    textFont(the_font);
+    textAlign(CENTER, CENTER);
+    textSize(128);
+    fill(#3a0e05);
+    textSize(64);
+    text("FOCUS ON ONE LEG AT A TIME (R + D, C)", width/2 + random(-5, 5), height/2 + random(-5, 5));
+    textSize(32);
+    text("most keyboards do not allow enough simultaneous keys for more than one leg", width/2, height/2 + 50);
   }
   else if (the_gameState == PLAY_STATE)
   {
@@ -86,7 +104,9 @@ void draw() {
     {
       the_gameState = WIN_STATE;
       
-      if (BABBY_COUNT < 7)
+      if (BABBY_COUNT < 3)
+        BABBY_COUNT += 1;
+      else if (BABBY_COUNT < 7)
         BABBY_COUNT += 2;
       else if (BABBY_COUNT >= 7)
         BABBY_COUNT *= 2;
@@ -149,7 +169,7 @@ void draw() {
               {
                  babby.stabLeg = null;
                 isFeeding = false;
-                the_screenShakeTimer = 1.0;
+                the_screenShakeTimer = 0.75;
                 if (leg.stabbedBabby != null)
                 {
                   leg.stabbedBabby.isDead = true;
@@ -233,7 +253,7 @@ void draw() {
       textSize(80);
       fill(#3a0e05);
       
-      text("THE CHILD BECOMES THE PARENT.", width/2 + random(-5, 5), height/2 + random(-5, 5));  
+      text("THE CHILD BECOMES THE PARENT", width/2 + random(-5, 5), height/2 + random(-5, 5));  
     }
   }
   else if (the_gameState == WIN_STATE)
@@ -250,7 +270,7 @@ void draw() {
       textAlign(CENTER, CENTER);
       textSize(80);
       fill(#3a0e05);
-      text("YOU CAN BREED AGAIN.", width/2 + random(-5, 5), height/2 + random(-5, 5));  
+      text("YOU CAN BREED AGAIN", width/2 + random(-5, 5), height/2 + random(-5, 5));  
      }
   }
 }
@@ -436,7 +456,15 @@ void keyReleased()
 
 void drawGradient(int left, int right, int top, int bottom, int alpha)
 {
-  strokeWeight(16);
+  if (the_pink.width > 0)
+  {
+    imageMode(CORNER);
+    tint(255, 255, 255, alpha);
+    image(the_pink, 0, 0, width, height);
+    noTint();
+    imageMode(CENTER);
+  }
+  /*strokeWeight(16);
   int r, g, b;
   for (int i = top; i < bottom; i += 16)
   {
@@ -448,7 +476,14 @@ void drawGradient(int left, int right, int top, int bottom, int alpha)
     b = 143 + (int)percent;
     stroke(r, g, b, alpha);
     line(left,i,right,i);
-  }
+  }*/
+}
+
+float distSQ(float x1, float y1, float x2, float y2)
+{
+  float dx = x1 - x2;
+  float dy = y1 - y2;
+  return dx * dx + dy * dy;
 }
 class AnimatedSprite
 {
@@ -894,7 +929,15 @@ class Leg
     if (getTipSegment().isBeingCarried)
       return false;
       
-    return getTipSegment().isCircleOverlapping(b.x, b.y, b.radius);
+    float x1 = getTipSegment().m_x;
+    float y1 = getTipSegment().m_y;
+    float d = getTipSegment().m_length * 0.5 + b.radius;
+    //d *= d;
+    //if (distSQ(x1, y1, b.x, b.y) < d || distSQ(m_tipX, m_tipY, b.x, b.y) < d)
+      return circleLineIntersect(getTipSegment().m_x, getTipSegment().m_y, m_tipX, m_tipY, b.x, b.y, b.radius);
+    //else
+    //  return false;
+    //return getTipSegment().isCircleOverlapping(b.x, b.y, b.radius);
   }
   
   boolean isBeingCarried()
@@ -1337,4 +1380,5 @@ class Spider
     }
   }
 }
+
 
