@@ -362,7 +362,7 @@ function keyPressed()
   {
     return;
   }
-  //print(key);
+  print(key);
 
   if (key == 't' || key == 'T')
     the_spider.m_legs[0].pressBkeyutton(0);
@@ -420,7 +420,6 @@ function keyPressed()
   else if (key == 'z' || key == 'Z')
     the_spider.m_legs[7].pressButton(2);
     
-  return false;
 }
 
 function keyReleased()
