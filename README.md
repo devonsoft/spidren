@@ -8,20 +8,20 @@ Give birth to more children.
 
 ### HOLD FEMUR + TIBIA & TAP METATARUS TO STAB
 
-* R + D + TAP C
+* **R + D + TAP C**
 
 ### HOLD TIBIA + METATARSUS TO FEED
 
-* D + C
+* **D + C**
 
 ### RAISE FEMUR
-* **R** or W E T Y U I O
+* W E **R** T        Y U I O
 
 ### LOWER TIBIA
-* **D** or A S F J K L ;
+* A S **D** F        J K L ;
 
 ### CURL/STAB METATARSUS
-* **C** or Z X C V N M , .
+* Z X **C** V        N M , .
 
 ## Getting Started
 
