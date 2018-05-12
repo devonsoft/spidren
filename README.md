@@ -4,22 +4,24 @@ Eat your children before they rip off all your legs to gouge out your eyes.
 
 Give birth to more children.
 
-**Repeat**
+**REPEAT**
 
-HOLD FEMUR + TIBIA & TAP METATARUS TO STAB
+### HOLD FEMUR + TIBIA & TAP METATARUS TO STAB
+
 R + D + TAP C
 
-HOLD TIBIA + METATARSUS TO FEED
+### HOLD TIBIA + METATARSUS TO FEED
+
 D + C
 
-RAISE FEMUR
-R or (W E T Y U I O)
+### RAISE FEMUR
+**R** or (W E T Y U I O)
 
-LOWER TIBIA
-D or (A S F J K L ;)
+### LOWER TIBIA
+**D** or (A S F J K L ;)
 
-CURL/STAB METATARSUS
-C or (Z X C V N M , .)
+### CURL/STAB METATARSUS
+**C** or (Z X C V N M , .)
 
 ## Getting Started
 
