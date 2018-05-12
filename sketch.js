@@ -362,9 +362,10 @@ function keyPressed()
   {
     return;
   }
+  //print(key);
 
   if (key == 't' || key == 'T')
-    the_spider.m_legs[0].pressButton(0);
+    the_spider.m_legs[0].pressBkeyutton(0);
   else if (key == 'f' || key == 'F')
     the_spider.m_legs[0].pressButton(1); 
   else if (key == 'v' || key == 'V')
@@ -395,7 +396,7 @@ function keyPressed()
     the_spider.m_legs[4].pressButton(0);
   else if (key == 'l' || key == 'L')
     the_spider.m_legs[4].pressButton(1);
-  else if (key == ',' || key == '<')
+  else if (key == ',' || key == '<' || key == '¼')
     the_spider.m_legs[4].pressButton(2);
 
   else if (key == 'e' || key == 'E')
@@ -409,7 +410,7 @@ function keyPressed()
     the_spider.m_legs[6].pressButton(0);
   else if (key == ';' || key == ':')
     the_spider.m_legs[6].pressButton(1);
-  else if (key == '.' || key == '>')
+  else if (key == '.' || key == '>' || key == '¾')
     the_spider.m_legs[6].pressButton(2);
 
   else if (key == 'w' || key == 'W')
@@ -418,6 +419,8 @@ function keyPressed()
     the_spider.m_legs[7].pressButton(1);
   else if (key == 'z' || key == 'Z')
     the_spider.m_legs[7].pressButton(2);
+    
+  return false;
 }
 
 function keyReleased()
@@ -469,7 +472,7 @@ function keyReleased()
     the_spider.m_legs[4].m_buttons[0] = 0;
   else if (key == 'l' || key == 'L')
     the_spider.m_legs[4].m_buttons[1] = 0;
-  else if (key == ',' || key == '<')
+  else if (key == ',' || key == '<' || key == '¼')
   {
     the_spider.m_legs[4].m_buttons[2]  = 0;
     the_spider.m_legs[4].m_isReaching = false;
@@ -485,7 +488,7 @@ function keyReleased()
     the_spider.m_legs[6].m_buttons[0] = 0;
   else if (key == ';' || key == ':')
     the_spider.m_legs[6].m_buttons[1] = 0;
-  else if (key == '.' || key == '>')
+  else if (key == '.' || key == '>' || key == '¾')
   {
     the_spider.m_legs[6].m_buttons[2]  = 0;
     the_spider.m_legs[6].m_isReaching = false;
@@ -1076,10 +1079,10 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
   {
     var dx = this.m_targetX - this.m_x;
     var dy = this.m_targetY - this.m_y;
-    print(this.m_targetX);
+    //print(this.m_targetX);
     this.m_angle = atan2(dy, dx); 
 
-    print(this.m_angle);
+    //print(this.m_angle);
 
     if (this.m_prev != null)
     {
