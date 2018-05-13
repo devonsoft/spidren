@@ -1,0 +1,52 @@
+{"frames": {
+
+"Babby_Walk 1.png":
+{
+    "frame": {"x":0,"y":0,"w":100,"h":72},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":100,"h":72},
+    "sourceSize": {"w":100,"h":72}
+},
+"Babby_Walk 2.png":
+{
+    "frame": {"x":100,"y":0,"w":100,"h":72},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":100,"h":72},
+    "sourceSize": {"w":100,"h":72}
+},
+"Babby_Walk 3.png":
+{
+    "frame": {"x":200,"y":0,"w":100,"h":72},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":100,"h":72},
+    "sourceSize": {"w":100,"h":72}
+},
+"Babby_Walk 4.png":
+{
+    "frame": {"x":300,"y":0,"w":100,"h":72},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":100,"h":72},
+    "sourceSize": {"w":100,"h":72}
+},
+"Babby_Dead 1.png":
+{
+    "frame": {"x":400,"y":0,"w":100,"h":72},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":100,"h":72},
+    "sourceSize": {"w":100,"h":72}
+}},
+"meta": {
+    "app": "",
+    "version": "1.0",
+    "image": "babby.png",
+    "format": "RGBA8888",
+    "size": {"w":800,"h":72},
+    "scale": "1",
+    "smartupdate": ""
+}
+}
