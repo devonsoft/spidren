@@ -1,0 +1,44 @@
+{"frames": {
+
+"Head_Normal.png":
+{
+    "frame": {"x":0,"y":0,"w":242,"h":242},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":242,"h":242},
+    "sourceSize": {"w":242,"h":242}
+},
+"Head_Annoyed.png":
+{
+    "frame": {"x":242,"y":0,"w":242,"h":242},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":242,"h":242},
+    "sourceSize": {"w":242,"h":242}
+},
+"Head_Angry.png":
+{
+    "frame": {"x":484,"y":0,"w":242,"h":242},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":242,"h":242},
+    "sourceSize": {"w":242,"h":242}
+},
+"Head_Pain.png":
+{
+    "frame": {"x":726,"y":0,"w":242,"h":242},
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": {"x":0,"y":0,"w":242,"h":242},
+    "sourceSize": {"w":242,"h":242}
+}},
+"meta": {
+    "app": "",
+    "version": "1.0",
+    "image": "head.png",
+    "format": "RGBA8888",
+    "size": {"w":968,"h":242},
+    "scale": "1",
+    "smartupdate": ""
+}
+}
