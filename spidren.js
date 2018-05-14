@@ -210,15 +210,23 @@ function drawGradient(left, right, top, bottom, alpha, parent, mask=null)
 {
   var graphics = new PIXI.Graphics();
   
-  var lineWidth = 4;
+  var lineWidth = 1;
   var r;
   var g;
   var b;
+  
+  var vertScale = 4;
+  top /= vertScale;
+  bottom /= vertScale;
+  
+  left = 0;
+  right = 1;
+  
     // set a fill and line style
   graphics.beginFill(0xFFFFFF);
   for (var i = top; i <= bottom; i += lineWidth)
   {
-    var percent = i / height;
+    var percent = i * vertScale / height;
     percent *= 75.0;
     r = 245 + int(percent);
     if (r > 255)
@@ -227,12 +235,14 @@ function drawGradient(left, right, top, bottom, alpha, parent, mask=null)
     b = 143 + int(percent);
     
     graphics.lineStyle(lineWidth, PIXI.utils.rgb2hex([r / 255,g /255,b / 255]), alpha);
-    graphics.moveTo(left,i);
+    graphics.moveTo(left,i); 
     graphics.lineTo(right,i);
   }
   graphics.endFill();
   if (mask)
     graphics.mask = mask;
+    
+  graphics.scale.set(width, vertScale);
     
   graphics.cacheAsBitmap = true;
   parent.addChild(graphics);
