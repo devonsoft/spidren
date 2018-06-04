@@ -1,3 +1,5 @@
+var isFirefox = typeof InstallTrigger !== 'undefined';
+
 var MENU_STATE_00 = 0;
 var MENU_STATE_01 = 1;
 var MENU_STATE_02 = 2;
@@ -149,7 +151,7 @@ function gameStart()
   the_gameState = PLAY_STATE;
   //stroke(255, 100);
   the_spider = new Spider();
- 
+  the_babbySpiders = new Array(BABBY_COUNT);
 }
 
 function mouseReleased()
@@ -163,8 +165,9 @@ function mouseReleased()
   } 
   else if (the_gameState > PLAY_STATE && the_transitionTimer <= 0)
   {
+    the_scenes[the_gameState].visible = false;
     the_gameState = PLAY_STATE;
-    the_doOnce = true;
+    the_scenes[the_gameState].visible = true;
   }
   
   /*if (the_fullscreenIcon)
@@ -173,18 +176,139 @@ function mouseReleased()
   }*/
 }
 
-var pkeys=[];
-window.onkeydown = function (e) 
+/*var pkeys=[];*/
+
+function controlSpider(code)
 {
-    var code = e.keyCode ? e.keyCode : e.which;
-    pkeys[code]=true;
 
 }
-window.onkeyup = function (e) 
+
+function keyPressed(e) 
 {
-  var code = e.keyCode ? e.keyCode : e.which;
-  pkeys[code]=false;
-};
+  var code = e.keyCode ? e.keyCode : e.which; //e.key.toUpperCase().charCodeAt(0);
+  
+  // semicolon on firefox
+  if (code == 59 && isFirefox)
+    code = 186;
+  
+  switch (code) 
+  {
+    case 84:  the_spider.m_legs[0].pressButton(0); break; // t
+    case 70:  the_spider.m_legs[0].pressButton(1); break; // f
+    case 86:  the_spider.m_legs[0].pressButton(2); break; // v
+    
+    case 89:  the_spider.m_legs[1].pressButton(0); break; // y
+    case 74:  the_spider.m_legs[1].pressButton(1); break; // j
+    case 78:  the_spider.m_legs[1].pressButton(2); break; // n
+    
+    case 85:  the_spider.m_legs[2].pressButton(0); break; // u
+    case 75:  the_spider.m_legs[2].pressButton(1); break; // k
+    case 77:  the_spider.m_legs[2].pressButton(2); break; // m
+    
+    case 82:  the_spider.m_legs[3].pressButton(0); break; // r
+    case 68:  the_spider.m_legs[3].pressButton(1); break; // d
+    case 67:  the_spider.m_legs[3].pressButton(2); break; // c
+    
+    case 73:  the_spider.m_legs[4].pressButton(0); break; // i
+    case 76:  the_spider.m_legs[4].pressButton(1); break; // l
+    case 188: the_spider.m_legs[4].pressButton(2); break; // ,
+    
+    case 69:  the_spider.m_legs[5].pressButton(0); break; // e
+    case 83:  the_spider.m_legs[5].pressButton(1); break; // s
+    case 88:  the_spider.m_legs[5].pressButton(2); break; // x
+    
+    case 79:  the_spider.m_legs[6].pressButton(0); break; // o
+    case 186: the_spider.m_legs[6].pressButton(1); break; // ;
+    case 190: the_spider.m_legs[6].pressButton(2); break; // .
+    
+    case 87:  the_spider.m_legs[7].pressButton(0); break; // w
+    case 65:  the_spider.m_legs[7].pressButton(1); break; // a
+    case 90:  the_spider.m_legs[7].pressButton(2); break; // z
+  }	
+}
+
+function keyReleased(e) 
+{
+  if (the_gameState < PLAY_STATE)
+  {
+    the_scenes[the_gameState].visible = false;
+    the_scenes[++the_gameState].visible = true;
+  } 
+  else if (the_gameState > PLAY_STATE && the_transitionTimer <= 0)
+  {
+    the_scenes[the_gameState].visible = false;
+    the_gameState = PLAY_STATE;
+    the_scenes[the_gameState].visible = true;
+    the_doOnce = true;
+  }
+  else
+  {
+    var code = e.keyCode ? e.keyCode : e.which; //e.key.toUpperCase().charCodeAt(0);
+    
+    // semicolon on firefox
+    if (code == 59 && isFirefox)
+      code = 186;
+    
+    switch (code) 
+    {
+      case 84:  the_spider.m_legs[0].m_buttons[0] = 0; break; // t
+      case 70:  the_spider.m_legs[0].m_buttons[1] = 0; break; // f
+      case 86:                                                // v
+        the_spider.m_legs[0].m_buttons[2] = 0;        
+        the_spider.m_legs[0].m_isReaching = false; 
+        break; 
+      
+      case 89:  the_spider.m_legs[1].m_buttons[0] = 0; break; // y
+      case 74:  the_spider.m_legs[1].m_buttons[1] = 0; break; // j
+      case 78:                                                // n
+        the_spider.m_legs[1].m_buttons[2] = 0;
+        the_spider.m_legs[1].m_isReaching = false; 
+        break; 
+      
+      case 85:  the_spider.m_legs[2].m_buttons[0] = 0; break; // u
+      case 75:  the_spider.m_legs[2].m_buttons[1] = 0; break; // k
+      case 77:                                                // m
+        the_spider.m_legs[2].m_buttons[2] = 0;
+        the_spider.m_legs[2].m_isReaching = false; 
+        break; 
+        
+      case 82:  the_spider.m_legs[3].m_buttons[0] = 0; break; // r
+      case 68:  the_spider.m_legs[3].m_buttons[1] = 0; break; // d
+      case 67:                                                // c
+        the_spider.m_legs[3].m_buttons[2] = 0;
+        the_spider.m_legs[3].m_isReaching = false; 
+        break; 
+      
+      case 73:  the_spider.m_legs[4].m_buttons[0] = 0; break; // i
+      case 76:  the_spider.m_legs[4].m_buttons[1] = 0; break; // l
+      case 188:                                               // ,
+        the_spider.m_legs[4].m_buttons[2] = 0;
+        the_spider.m_legs[4].m_isReaching = false; 
+        break; 
+      
+      case 69:  the_spider.m_legs[5].m_buttons[0] = 0; break; // e
+      case 83:  the_spider.m_legs[5].m_buttons[1] = 0; break; // s
+      case 88:                                                // x
+        the_spider.m_legs[5].m_buttons[2] = 0;
+        the_spider.m_legs[5].m_isReaching = false; 
+        break; 
+        
+      case 79:  the_spider.m_legs[6].m_buttons[0] = 0; break; // o
+      case 186: the_spider.m_legs[6].m_buttons[1] = 0; break; // ;
+      case 190:                                               // .
+        the_spider.m_legs[6].m_buttons[2] = 0;
+        the_spider.m_legs[6].m_isReaching = false; 
+        break; 
+        
+      case 87:  the_spider.m_legs[7].m_buttons[0] = 0; break; // w
+      case 65:  the_spider.m_legs[7].m_buttons[1] = 0; break; // a
+      case 90:                                                // z
+        the_spider.m_legs[7].m_buttons[2] = 0;
+        the_spider.m_legs[7].m_isReaching = false; 
+        break; 
+    }
+  }
+}
 
 function createVector(x, y)
 {
@@ -373,15 +497,16 @@ function setup()
     }  
     if (deadBabbyCount >= BABBY_COUNT)
     {
+      the_scenes[the_gameState].visible = false;
       the_gameState = WIN_STATE;
-
+      the_scenes[the_gameState].visible = true;
+    
       if (BABBY_COUNT < 3)
         BABBY_COUNT += 1;
       else if (BABBY_COUNT < 7)
         BABBY_COUNT += 2;
       else if (BABBY_COUNT >= 7)
         BABBY_COUNT *= 2;
-      the_babbySpiders = new Array(BABBY_COUNT);
     } 
     else
     {     
@@ -485,6 +610,72 @@ function setup()
       the_screen_offset = 0.0;
   
   }
+  
+  // GAMEOVER_STATE
+  the_scenes[4] = new PIXI.Container();
+  the_scenes[4].titleText = new PIXI.Text('THE CHILD BECOMES THE PARENT', {
+    fontSize: DPI(80),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(80)
+  });
+  the_scenes[4].titleText.anchor.set(0.5); 
+  the_scenes[4].update = function(delta)
+  {
+    the_transitionTimer -= 1 / 30.0;
+    if (the_transitionTimer > 0)
+    {
+      this.titleText.alpha = 0;
+      if (this.gradient.alpha < 1)
+        this.gradient.alpha += .001;
+      else
+        this.gradient.alpha = 1;
+    }
+    else
+    {
+      this.gradient.alpha = 1;
+      this.titleText.alpha = 1;
+      this.titleText.x = width/2 + random(-5, 5);
+      this.titleText.y = height/2 + random(-5, 5);
+    }
+  }
+  the_scenes[4].gradient = drawGradient(0, width, 0, height, 1, the_scenes[4]);
+  the_scenes[4].gradient.alpha = 0;
+  the_scenes[4].addChild(the_scenes[4].titleText);
+  
+  // WIN_STATE
+  the_scenes[5] = new PIXI.Container();
+  the_scenes[5].titleText = new PIXI.Text('YOU CAN BREED AGAIN', {
+    fontSize: DPI(80),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(80)
+  });
+  the_scenes[5].titleText.anchor.set(0.5); 
+  the_scenes[5].update = function(delta)
+  {
+    the_transitionTimer -= 1 / 30.0;
+    if (the_transitionTimer > 0)
+    {
+      this.titleText.alpha = 0;
+      if (this.gradient.alpha < 1)
+        this.gradient.alpha += .001;
+      else
+        this.gradient.alpha = 1;
+    }
+    else
+    {
+      this.gradient.alpha = 1;
+      this.titleText.alpha = 1;
+      this.titleText.x = width/2 + random(-5, 5);
+      this.titleText.y = height/2 + random(-5, 5);
+    }
+  }
+  the_scenes[5].gradient = drawGradient(0, width, 0, height, 1, the_scenes[5]);
+  the_scenes[5].gradient.alpha = 0;
+  the_scenes[5].addChild(the_scenes[5].titleText);
    
   for (var i = 0; i < the_scenes.length; i++)
   {
@@ -495,6 +686,10 @@ function setup()
   the_scenes[0].visible = true;
  
   app.renderer.plugins.interaction.on('pointerup', mouseReleased);
+  //app.renderer.plugins.interaction.on('keydown', keyPressed);
+  //app.renderer.plugins.interaction.on('keyup', keyReleased);
+  window.addEventListener('keydown', keyPressed, false);
+  window.addEventListener('keyup', keyReleased, false);
   app.stage.interactive = true;
   app.stage.interactiveChildren = false;
 }
@@ -502,8 +697,12 @@ function setup()
 // Listen for animate update
 app.ticker.add(function(delta) 
 {
-
-  the_scenes[the_gameState].update(delta);
+  for (var i = 0; i < the_scenes.length; i++)
+  {
+    if (the_scenes[i].visible)
+      the_scenes[i].update(delta);
+  }
+  //the_scenes[the_gameState].update(delta);
   
   frameCount += 1;
 });
@@ -664,16 +863,16 @@ function BabbySpider()
         {
           //the_spider.mandible.textures = the_mandibleEatingTextures;
           
-          this.mandible.visible = false;
-          this.mandibleTopLayer.visible = true;
+          the_spider.mandible.visible = false;
+          the_spider.mandibleTopLayer.visible = true;
       
           //this.blood.addParticle();
           this.health -= 0.01; 
         } 
         else
         {
-          this.mandible.visible = true;
-          this.mandibleTopLayer.visible = false;
+          the_spider.mandible.visible = true;
+          the_spider.mandibleTopLayer.visible = false;
         }
       }
     } 
@@ -690,7 +889,11 @@ function BabbySpider()
           this.isThrowing = false;
           the_spider.tipCount -= 1;
           if (the_spider.tipCount <= 0)
+          {
+            the_scenes[the_gameState].visible = false;
             the_gameState = GAMEOVER_STATE;
+            the_scenes[the_gameState].visible = true;
+          }
         }
       }
     } 
@@ -766,8 +969,8 @@ function BabbySpider()
         this.stabLeg.stabbedBabby = null;
       this.isDead = true;
       this.velocity = createVector(random(-1, 1), random(-1, 0));
-      this.mandible.visible = true;
-      this.mandibleTopLayer.visible = false;
+      the_spider.mandible.visible = true;
+      the_spider.mandibleTopLayer.visible = false;
     }
     //this.blood.run();
   }
@@ -1112,7 +1315,6 @@ function Spider()
   this.mandibleTopLayer.animationSpeed = 0.2;
   this.mandibleTopLayer.play();
   this.mandibleTopLayer.visible = false;
-  the_scenes[PLAY_STATE].addChild(this.mandibleTopLayer);
   
   this.mandible = new PIXI.Sprite(the_mandibleNormalTextures[0]);
   this.mandible.anchor.set(0.5);
@@ -1135,7 +1337,11 @@ function Spider()
         {
           the_babbySpiders[i] = new BabbySpider();
         }
-      } else
+        
+        // make sure mandible animation renders on top of babbies
+        the_scenes[PLAY_STATE].addChild(this.mandibleTopLayer);
+      } 
+      else
       {
         this.y += 5;
       }
