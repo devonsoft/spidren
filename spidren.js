@@ -149,8 +149,15 @@ function gameStart()
 {
   the_transitionTimer = 2;
   the_gameState = PLAY_STATE;
-  //stroke(255, 100);
-  the_spider = new Spider();
+  
+  if (the_spider)
+    the_spider.remove();
+  the_spider = new Spider(); 
+  
+  for (var i = 0; i < the_babbySpiders.length; i++)
+  {
+    the_babbySpiders[i].remove();
+  }
   the_babbySpiders = new Array(BABBY_COUNT);
 }
 
@@ -168,6 +175,7 @@ function mouseReleased()
     the_scenes[the_gameState].visible = false;
     the_gameState = PLAY_STATE;
     the_scenes[the_gameState].visible = true;
+    the_doOnce = true;
   }
   
   /*if (the_fullscreenIcon)
@@ -473,6 +481,8 @@ function setup()
   backgroundGrass.height = h;
   app.stage.addChild(backgroundGrass);
   
+  //the_spider = new Spider();
+  
   the_scenes[3].update = function(delta)
   {
     if (the_doOnce)
@@ -497,7 +507,7 @@ function setup()
     }  
     if (deadBabbyCount >= BABBY_COUNT)
     {
-      the_scenes[the_gameState].visible = false;
+      //the_scenes[the_gameState].visible = false;
       the_gameState = WIN_STATE;
       the_scenes[the_gameState].visible = true;
     
@@ -509,7 +519,7 @@ function setup()
         BABBY_COUNT *= 2;
     } 
     else
-    {     
+    {          
       for (var i = 0; i < the_babbySpiders.length && !the_spider.buttExploding; i++)
       {
         var isFeeding = false;
@@ -518,7 +528,6 @@ function setup()
         for (var j = 0; j < the_spider.m_legs.length; j++)
         {
           leg = the_spider.m_legs[j];
-          leg.shouldRemoveHealth = false;
           var isOverlapping = false;
           if (!leg.m_isReaching && !babby.isStabbed && (babby.y >= the_ground || babby.carriedSegment == null)) 
             isOverlapping = leg.isOverlappingTipSegment(babby);
@@ -660,10 +669,10 @@ function setup()
     if (the_transitionTimer > 0)
     {
       this.titleText.alpha = 0;
-      if (this.gradient.alpha < 1)
+      /*if (this.gradient.alpha < 1)
         this.gradient.alpha += .001;
       else
-        this.gradient.alpha = 1;
+        this.gradient.alpha = 1;*/
     }
     else
     {
@@ -805,6 +814,11 @@ function BabbySpider()
   
   the_scenes[PLAY_STATE].addChild(this.sprite);
   
+  this.remove = function()
+  {
+    the_scenes[PLAY_STATE].removeChild(this.sprite);
+  }
+  
   this.update = function(delta)
   {         
     if (this.isDead || this.isSpawning)
@@ -890,7 +904,7 @@ function BabbySpider()
           the_spider.tipCount -= 1;
           if (the_spider.tipCount <= 0)
           {
-            the_scenes[the_gameState].visible = false;
+            //the_scenes[the_gameState].visible = false;
             the_gameState = GAMEOVER_STATE;
             the_scenes[the_gameState].visible = true;
           }
@@ -979,10 +993,8 @@ function BabbySpider()
   
 function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, img)
 {
-  this.m_isReaching = false;
+
   this.m_prev = null;
-  this.isBeingCarried = false;
-  this.m_isDripping = false;
 
   this.m_x = xx;
   this.m_y = yy;
@@ -995,9 +1007,17 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
   this.m_img = new PIXI.Sprite(img);
   this.m_img.anchor.set(0.5);
   the_scenes[PLAY_STATE].addChild(this.m_img);
-
-  this.m_targetX = 0;
-  this.m_targetY = 0;
+  
+  this.setup = function()
+  {
+    this.m_isReaching = false;
+    this.isBeingCarried = false;
+    this.m_isDripping = false;
+    this.m_targetX = 0;
+    this.m_targetY = 0;    
+  }
+  
+  this.setup();
 
   this.draw = function(isLeft) 
   { 
@@ -1086,18 +1106,8 @@ function Leg(startX, startY, startAngle, startLength, parentY)
   this.m_segmentCount = 3;
   this.m_segments = new Array(this.m_segmentCount);
   this.m_buttons = new Array(this.m_segmentCount);
-  for (var i=0; i < this.m_buttons.length; i++)
-  {
-    this.m_buttons[i] = 0;
-  }
+
   this.m_isLeft = true;
-  this.m_isReaching = false;
-  this.shouldRemoveHealth = false;
-  this.m_dx = 0;
-  this.m_tipX = 0;
-  this.m_tipY = 0;
-  this.health = 1.0;
-  this.stabbedBabby = null;
 
   var heightChange = height - DPI(360);
   var offset = ((parentY - heightChange) / (startY - heightChange));
@@ -1122,8 +1132,29 @@ function Leg(startX, startY, startAngle, startLength, parentY)
     this.m_segments[i].m_prev = this.m_segments[i-1];
     this.m_segments[i].m_angle = this.m_segments[i-1].m_angle+this.m_segments[i].m_startAngle;
   }   
-  //}
 
+  this.setup = function()
+  {
+    this.m_isReaching = false;
+    this.shouldRemoveHealth = false;
+    for (var i=0; i < this.m_buttons.length; i++)
+    {
+      this.m_buttons[i] = 0;
+    }  
+    this.m_dx = 0;
+    this.m_tipX = 0;
+    this.m_tipY = 0;
+    this.health = 1.0;
+    this.stabbedBabby = null;
+    
+    for (var i = 1; i < this.m_segments.length; i++)
+    {
+      this.m_segments[i].setup();
+    }
+  }
+  
+  this.setup();
+  
   this.draw = function()
   {   
     if (this.m_buttons[1] != 0)
@@ -1172,6 +1203,8 @@ function Leg(startX, startY, startAngle, startLength, parentY)
     this.m_dx = tx - this.m_tipX;
     this.m_tipY = ty;
     this.m_tipX = tx;
+    
+    this.shouldRemoveHealth = false;
   }
 
   this.reach = function(i)
@@ -1258,18 +1291,14 @@ function Spider()
   this.m_legs = new Array(this.tipCount);
   this.x = width / 2;
   this.y = height - DPI(230);
-  this.buttDirection = -0.01;
-  this.buttOffset = 0;
-  this.buttExploding = true;
-   
+     
   this.webStrand = new PIXI.Graphics(); 
   var lineWidth = DPI(5);
   this.webStrand.beginFill(0xFFFFFF);
   this.webStrand.lineStyle(lineWidth, PIXI.utils.rgb2hex([192 / 255, 224 / 255, 192 / 255]), 0.5);
   this.webStrand.moveTo(this.x, 0);
   this.webStrand.lineTo(this.x, 1);
-  this.webStrand.endFill();
-  
+  this.webStrand.endFill();  
   this.webStrand.cacheAsBitmap = true;
 
   the_scenes[PLAY_STATE].addChild(this.webStrand);
@@ -1320,7 +1349,40 @@ function Spider()
   this.mandible.anchor.set(0.5);
   the_scenes[PLAY_STATE].addChild(this.mandible);
    
-  this.y = 0;
+  this.setup = function()
+  {
+    this.buttDirection = -0.01;
+    this.buttOffset = 0;
+    this.buttExploding = true;
+    this.y = 0;
+    
+    for (var i=0; i < this.m_legs.length; i++)
+    {
+      this.m_legs[i].setup();
+    }
+  }
+  
+  this.setup();
+    
+  this.remove = function()
+  {
+    // Probably dont need to remove all these but easier than resetting for now
+    the_scenes[PLAY_STATE].removeChild(this.webStrand);
+    the_scenes[PLAY_STATE].removeChild(this.butt);
+    the_scenes[PLAY_STATE].removeChild(this.body);
+    the_scenes[PLAY_STATE].removeChild(this.head);
+    the_scenes[PLAY_STATE].removeChild(this.mandibleTopLayer);
+    the_scenes[PLAY_STATE].removeChild(this.mandible);
+    the_scenes[PLAY_STATE].removeChild(the_grassSprite);
+    
+    for (var i=0; i < this.m_legs.length; i++)
+    {
+      for (var j = 0; j < this.m_legs[i].m_segments.length; j++)
+      {
+        the_scenes[PLAY_STATE].removeChild(this.m_legs[i].m_segments[j].m_img);
+      }
+    }
+  }
   
   this.draw = function()  
   {
