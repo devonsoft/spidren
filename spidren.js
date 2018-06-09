@@ -263,56 +263,56 @@ function keyReleased(e)
       case 70:  the_spider.m_legs[0].m_buttons[1] = 0; break; // f
       case 86:                                                // v
         the_spider.m_legs[0].m_buttons[2] = 0;        
-        the_spider.m_legs[0].m_isReaching = false; 
+        //the_spider.m_legs[0].m_isReaching = false; 
         break; 
       
       case 89:  the_spider.m_legs[1].m_buttons[0] = 0; break; // y
       case 74:  the_spider.m_legs[1].m_buttons[1] = 0; break; // j
       case 78:                                                // n
         the_spider.m_legs[1].m_buttons[2] = 0;
-        the_spider.m_legs[1].m_isReaching = false; 
+        //the_spider.m_legs[1].m_isReaching = false; 
         break; 
       
       case 85:  the_spider.m_legs[2].m_buttons[0] = 0; break; // u
       case 75:  the_spider.m_legs[2].m_buttons[1] = 0; break; // k
       case 77:                                                // m
         the_spider.m_legs[2].m_buttons[2] = 0;
-        the_spider.m_legs[2].m_isReaching = false; 
+        //the_spider.m_legs[2].m_isReaching = false; 
         break; 
         
       case 82:  the_spider.m_legs[3].m_buttons[0] = 0; break; // r
       case 68:  the_spider.m_legs[3].m_buttons[1] = 0; break; // d
       case 67:                                                // c
         the_spider.m_legs[3].m_buttons[2] = 0;
-        the_spider.m_legs[3].m_isReaching = false; 
+        //the_spider.m_legs[3].m_isReaching = false; 
         break; 
       
       case 73:  the_spider.m_legs[4].m_buttons[0] = 0; break; // i
       case 76:  the_spider.m_legs[4].m_buttons[1] = 0; break; // l
       case 188:                                               // ,
         the_spider.m_legs[4].m_buttons[2] = 0;
-        the_spider.m_legs[4].m_isReaching = false; 
+        //the_spider.m_legs[4].m_isReaching = false; 
         break; 
       
       case 69:  the_spider.m_legs[5].m_buttons[0] = 0; break; // e
       case 83:  the_spider.m_legs[5].m_buttons[1] = 0; break; // s
       case 88:                                                // x
         the_spider.m_legs[5].m_buttons[2] = 0;
-        the_spider.m_legs[5].m_isReaching = false; 
+        //the_spider.m_legs[5].m_isReaching = false; 
         break; 
         
       case 79:  the_spider.m_legs[6].m_buttons[0] = 0; break; // o
       case 186: the_spider.m_legs[6].m_buttons[1] = 0; break; // ;
       case 190:                                               // .
         the_spider.m_legs[6].m_buttons[2] = 0;
-        the_spider.m_legs[6].m_isReaching = false; 
+        //the_spider.m_legs[6].m_isReaching = false; 
         break; 
         
       case 87:  the_spider.m_legs[7].m_buttons[0] = 0; break; // w
       case 65:  the_spider.m_legs[7].m_buttons[1] = 0; break; // a
       case 90:                                                // z
         the_spider.m_legs[7].m_buttons[2] = 0;
-        the_spider.m_legs[7].m_isReaching = false; 
+        //the_spider.m_legs[7].m_isReaching = false; 
         break; 
     }
   }
@@ -578,7 +578,11 @@ function setup()
           } 
           else if (leg.m_isReaching && leg.stabbedBabby == null && leg.getTipSegment().isBeingCarried == false)
           {
-            isOverlapping = dist(leg.m_tipX, leg.m_tipY, babby.x, babby.y) < babby.radius * 2;
+			var midTipX = leg.m_tipX + ((leg.getTipSegment().m_x - leg.m_tipX));// * 0.5);
+			var midTipY = leg.m_tipY + ((leg.getTipSegment().m_y - leg.m_tipY));// * 0.5);
+            isOverlapping = //dist(leg.m_tipX, leg.m_tipY, babby.x, babby.y) < babby.radius * 2;
+				//circleLineIntersect(midTipX, midTipY, leg.m_tipX, leg.m_tipY, babby.x, babby.y, babby.radius * 2.0);
+   				circleLineIntersect(leg.m_tipX, leg.m_tipY, leg.m_targetX, leg.m_targetY, babby.x, babby.y, babby.radius * 2.0);
             if (isOverlapping)
             {
               babby.isStabbed = true;
@@ -851,7 +855,7 @@ function BabbySpider()
 
         var magnitude = dist(0, 0, tempDirection.x, tempDirection.y);
 
-        if (abs(tempDirection.x) > DPI(200))
+        if (Math.abs(tempDirection.x) > DPI(200))
         {
           this.isClimbing = false;
         } 
@@ -1014,7 +1018,9 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     this.isBeingCarried = false;
     this.m_isDripping = false;
     this.m_targetX = 0;
-    this.m_targetY = 0;    
+    this.m_targetY = 0;
+    this.atMaxAngle = false;
+    this.atMinAngle = false;    
   }
   
   this.setup();
@@ -1063,12 +1069,27 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     if (this.isBeingCarried)
       return;
 
+    var min;
+    var max;
     if (this.m_prev != null) 
     {
-      this.m_angle = constrain(this.m_angle, this.m_prev.m_angle+this.m_startAngle+this.m_minAngle, this.m_prev.m_angle+this.m_startAngle+this.m_maxAngle);
+      min = this.m_prev.m_angle+this.m_startAngle+this.m_minAngle;
+      max = this.m_prev.m_angle+this.m_startAngle+this.m_maxAngle;
     } 
     else
-      this.m_angle = constrain(this.m_angle, this.m_startAngle+this.m_minAngle, this.m_startAngle+this.m_maxAngle);
+    {
+      min = this.m_startAngle+this.m_minAngle;
+      max = this.m_startAngle+this.m_maxAngle;
+    }
+    this.m_angle = constrain(this.m_angle, min, max);
+    
+    this.atMaxAngle = false;
+    this.atMinAngle = false;
+    if (this.m_angle == max)
+      this.atMaxAngle = true;
+    if (this.m_angle == min)
+      this.atMinAngle = true;
+
   }
 
   this.isCircleOverlapping = function(cx, cy, cr)
@@ -1146,6 +1167,7 @@ function Leg(startX, startY, startAngle, startLength, parentY)
     this.m_tipY = 0;
     this.health = 1.0;
     this.stabbedBabby = null;
+	this.curlSpeed = 0.1;
     
     for (var i = 1; i < this.m_segments.length; i++)
     {
@@ -1211,16 +1233,27 @@ function Leg(startX, startY, startAngle, startLength, parentY)
   {
     if (i ==this.m_segments.length-1)
     {
-      if (this.m_buttons[2] == 1 
-        && this.m_buttons[1] == 2 && this.m_buttons[0] == 2)
-      {
-        this.m_isReaching = true;
-        this.m_targetX = this.m_tipX;
-        this.m_targetY = this.m_tipY + DPI(20);
+      if (this.m_tipY >= the_ground)
+      {  
+        this.m_isReaching = false;
       }
-      this.m_segments[i].m_targetX = this.m_targetX;
-      this.m_targetY = this.m_targetY + DPI(50);
-      this.m_segments[i].m_targetY = this.m_targetY;
+      else
+      {
+        if (this.m_buttons[2] == 1 
+          && this.m_buttons[1] == 2 
+          && this.m_buttons[0] == 2
+          && ((this.m_segments[0].atMaxAngle && this.m_segments[1].atMinAngle)
+            || (this.m_segments[0].atMinAngle && this.m_segments[1].atMaxAngle)))
+        {
+          this.m_isReaching = true;
+          this.m_targetX = this.m_tipX;
+          this.m_targetY = this.m_tipY + DPI(20);
+        console.log("hey" + this.m_tipY);
+        }
+        this.m_segments[i].m_targetX = this.m_targetX;
+        this.m_targetY = this.m_targetY + DPI(50);
+        this.m_segments[i].m_targetY = this.m_targetY;
+      }
     }
 
     if (this.m_isReaching)
@@ -1230,6 +1263,7 @@ function Leg(startX, startY, startAngle, startLength, parentY)
       else
       {
         this.m_isReaching = false;
+				console.log("release" + this.m_tipY);
       }
     }
   }
@@ -1240,9 +1274,9 @@ function Leg(startX, startY, startAngle, startLength, parentY)
       return;
 
     if (this.m_isLeft)
-      this.m_segments[i].curl((i+1) * 0.2); // maybe 0.1
+      this.m_segments[i].curl((i+1) * this.curlSpeed); 
     else
-      this.m_segments[i].curl((i+1) * -0.2);
+      this.m_segments[i].curl((i+1) * -this.curlSpeed);
   }
 
   this.curlDown = function(i)
@@ -1251,9 +1285,9 @@ function Leg(startX, startY, startAngle, startLength, parentY)
       return;
 
     if (this.m_isLeft)
-      this.m_segments[i].curl((i+1) * -0.2);
+      this.m_segments[i].curl((i+1) * -this.curlSpeed);
     else
-      this.m_segments[i].curl((i+1) * 0.2);
+      this.m_segments[i].curl((i+1) * this.curlSpeed);
   }
 
   this.pressButton = function(i)
@@ -1456,7 +1490,7 @@ function Spider()
     {
       for (var j=0; j < this.m_legs[i].m_segments.length; j++)
       {
-        if (this.m_legs[i].m_buttons[2] != 0)
+        //if (this.m_legs[i].m_buttons[2] != 0)
           this.m_legs[i].reach(j);
 
         if (this.m_legs[i].m_buttons[j] != 0)
