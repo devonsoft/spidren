@@ -44,6 +44,10 @@ var the_doOnce = true;
 var the_canvas = null;
 var the_fullscreenIcon;
 
+var jtr = 4;
+var vx = 0;
+var vy = 0;
+
 var frameCount = 0;
 
 var the_scale = 2.0;
@@ -338,9 +342,11 @@ function constrain(val, min, max)
     return val > max ? max : val < min ? min : val;
 }
 
-function drawGradient(left, right, top, bottom, alpha, parent, mask=null)
+function drawGradient(left, right, top, bottom, alpha, parent=null, mask=null, g=null)
 {
-  var graphics = new PIXI.Graphics();
+  var graphics = g;
+  if (graphics == null)
+    var graphics = new PIXI.Graphics();
   
   var lineWidth = 1;
   var r;
@@ -377,7 +383,9 @@ function drawGradient(left, right, top, bottom, alpha, parent, mask=null)
   graphics.scale.set(width, vertScale);
     
   graphics.cacheAsBitmap = true;
-  parent.addChild(graphics);
+  
+  if (parent)
+    parent.addChild(graphics);
   
   return graphics;
 }
@@ -428,13 +436,24 @@ function setup()
     align: 'center',
     padding: DPI(64)
   });    
-  the_scenes[0].subtitleText.anchor.set(0.5);   
+  the_scenes[0].subtitleText.anchor.set(0.5);  
+  the_scenes[0].titleText.x = width/2;
+  the_scenes[0].titleText.y = height/2;
+  the_scenes[0].subtitleText.x = width/2;
+  the_scenes[0].subtitleText.y = height/2 + DPI(100);   
   the_scenes[0].update = function(delta)
   {
-    this.titleText.x = width/2 + random(-5, 5);
-    this.titleText.y = height/2 + random(-5, 5);
-    this.subtitleText.x = width/2 + random(-5, 5);
-    this.subtitleText.y = height/2 + random(-5, 5) + DPI(100); 
+    if (frameCount % 2 == 0)
+    {
+      this.titleText.vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
+      this.titleText.vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
+      this.subtitleText.vx = (width/2 + random(-jtr, jtr) - this.subtitleText.x) / 2;;
+      this.subtitleText.vy = (height/2 + random(-jtr, jtr) + DPI(100) - this.subtitleText.y) / 2;
+    }
+    this.titleText.x += this.titleText.vx;
+    this.titleText.y += this.titleText.vy;
+    this.subtitleText.x += this.subtitleText.vx;
+    this.subtitleText.y += this.subtitleText.vy; 
   }
   the_scenes[0].addChild(the_scenes[0].titleText, the_scenes[0].subtitleText);
   
@@ -453,6 +472,9 @@ function setup()
     padding: DPI(64)
   });
   the_scenes[2].titleText.anchor.set(0.5); 
+  the_scenes[2].titleText.x = width/2;
+  the_scenes[2].titleText.y = height/2;
+  
   the_scenes[2].subtitleText = new PIXI.Text('most keyboards do not allow enough simultaneous keys for more than one leg', {
     fontSize: DPI(32),
     fontFamily: the_font,
@@ -465,8 +487,13 @@ function setup()
   the_scenes[2].subtitleText.y = height/2 + DPI(50);
   the_scenes[2].update = function(delta)
   {
-    this.titleText.x = width/2 + random(-5, 5);
-    this.titleText.y = height/2 + random(-5, 5);
+    if (frameCount % 2 == 0)
+    {
+      vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
+      vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
+    }
+    this.titleText.x += vx;
+    this.titleText.y += vy;
   }
   the_scenes[2].addChild(the_scenes[2].titleText, the_scenes[2].subtitleText);
   
@@ -510,6 +537,7 @@ function setup()
       //the_scenes[the_gameState].visible = false;
       the_gameState = WIN_STATE;
       the_scenes[the_gameState].visible = true;
+      the_scenes[the_gameState].alpha = 0;
     
       if (BABBY_COUNT < 3)
         BABBY_COUNT += 1;
@@ -587,10 +615,6 @@ function setup()
             {
               babby.isStabbed = true;
               babby.isClimbing = false;
-              if (babby.carriedSegment != null)
-              {
-                babby.carriedSegment.isBeingCarried = false;
-              }
               babby.stabLeg = leg;
               leg.stabbedBabby = babby;
             }
@@ -634,29 +658,37 @@ function setup()
     padding: DPI(80)
   });
   the_scenes[4].titleText.anchor.set(0.5); 
+  the_scenes[4].titleText.x = width/2;
+  the_scenes[4].titleText.y = height/2;
+  the_scenes[4].alpha = 0;
+  the_scenes[4].gradient = drawGradient(0, width, 0, height, 1, the_scenes[4]);
+  the_scenes[4].addChild(the_scenes[4].titleText);
   the_scenes[4].update = function(delta)
   {
-    the_transitionTimer -= 1 / 30.0;
+    the_transitionTimer -= 1 / 60.0;
     if (the_transitionTimer > 0)
     {
       this.titleText.alpha = 0;
-      if (this.gradient.alpha < 1)
-        this.gradient.alpha += .001;
-      else
-        this.gradient.alpha = 1;
+      if (this.alpha < 1)
+        this.alpha += 0.01;  
+      else  
+        this.alpha = 1;        
     }
     else
     {
-      this.gradient.alpha = 1;
+      the_scenes[PLAY_STATE].alpha = 1;
+      the_scenes[PLAY_STATE].visible = false;
       this.titleText.alpha = 1;
-      this.titleText.x = width/2 + random(-5, 5);
-      this.titleText.y = height/2 + random(-5, 5);
+      if (frameCount % 2 == 0)
+      {
+        vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
+        vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
+      }
+      this.titleText.x += vx;
+      this.titleText.y += vy;
     }
   }
-  the_scenes[4].gradient = drawGradient(0, width, 0, height, 1, the_scenes[4]);
-  the_scenes[4].gradient.alpha = 0;
-  the_scenes[4].addChild(the_scenes[4].titleText);
-  
+ 
   // WIN_STATE
   the_scenes[5] = new PIXI.Container();
   the_scenes[5].titleText = new PIXI.Text('YOU CAN BREED AGAIN', {
@@ -667,28 +699,36 @@ function setup()
     padding: DPI(80)
   });
   the_scenes[5].titleText.anchor.set(0.5); 
+  the_scenes[5].titleText.x = width/2;
+  the_scenes[5].titleText.y = height/2;
+  the_scenes[5].alpha = 0;
+  the_scenes[5].gradient = drawGradient(0, width, 0, height, 1, the_scenes[5]);
+  the_scenes[5].addChild(the_scenes[5].titleText);
   the_scenes[5].update = function(delta)
   {
-    the_transitionTimer -= 1 / 30.0;
+    the_transitionTimer -= 1 / 60.0;
     if (the_transitionTimer > 0)
     {
       this.titleText.alpha = 0;
-      /*if (this.gradient.alpha < 1)
-        this.gradient.alpha += .001;
-      else
-        this.gradient.alpha = 1;*/
+      if (this.alpha < 1)
+        this.alpha += 0.01;  
+      else  
+        this.alpha = 1;        
     }
     else
     {
-      this.gradient.alpha = 1;
+      the_scenes[PLAY_STATE].alpha = 1;
+      the_scenes[PLAY_STATE].visible = false;
       this.titleText.alpha = 1;
-      this.titleText.x = width/2 + random(-5, 5);
-      this.titleText.y = height/2 + random(-5, 5);
+      if (frameCount % 2 == 0)
+      {
+        vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
+        vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
+      }
+      this.titleText.x += vx;
+      this.titleText.y += vy;
     }
   }
-  the_scenes[5].gradient = drawGradient(0, width, 0, height, 1, the_scenes[5]);
-  the_scenes[5].gradient.alpha = 0;
-  the_scenes[5].addChild(the_scenes[5].titleText);
    
   for (var i = 0; i < the_scenes.length; i++)
   {
@@ -898,7 +938,7 @@ function BabbySpider()
     {
       if (this.carriedSegment != null)
       {
-        this.carriedSegment.m_y -= this.speed;
+        this.carriedSegment.m_y -= 10;//this.speed;
         if (this.carriedSegment.m_y < (the_spider.y + this.carriedSegment.m_length))
         {
           this.carriedSegment.m_isDripping = true;
@@ -911,6 +951,7 @@ function BabbySpider()
             //the_scenes[the_gameState].visible = false;
             the_gameState = GAMEOVER_STATE;
             the_scenes[the_gameState].visible = true;
+            the_scenes[the_gameState].alpha = 0; 
           }
         }
       }
@@ -1101,6 +1142,9 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
 
   this.reach = function()
   {
+    if (this.isBeingCarried)
+      return;
+    
     var dx = this.m_targetX - this.m_x;
     var dy = this.m_targetY - this.m_y;
     //print(this.m_targetX);
@@ -1167,7 +1211,7 @@ function Leg(startX, startY, startAngle, startLength, parentY)
     this.m_tipY = 0;
     this.health = 1.0;
     this.stabbedBabby = null;
-	this.curlSpeed = 0.1;
+    this.curlSpeed = 0.1;
     
     for (var i = 1; i < this.m_segments.length; i++)
     {
@@ -1231,29 +1275,25 @@ function Leg(startX, startY, startAngle, startLength, parentY)
 
   this.reach = function(i)
   {
-    if (i ==this.m_segments.length-1)
+    if (this.m_tipY >= the_ground || this.m_segments[i].isBeingCarried)
+    {  
+      this.m_isReaching = false;
+    }    
+    else if (i == this.m_segments.length-1)
     {
-      if (this.m_tipY >= the_ground)
-      {  
-        this.m_isReaching = false;
-      }
-      else
+      if (this.m_buttons[2] == 1 
+        && this.m_buttons[1] == 2 
+        && this.m_buttons[0] == 2
+        && ((this.m_segments[0].atMaxAngle && this.m_segments[1].atMinAngle)
+          || (this.m_segments[0].atMinAngle && this.m_segments[1].atMaxAngle)))
       {
-        if (this.m_buttons[2] == 1 
-          && this.m_buttons[1] == 2 
-          && this.m_buttons[0] == 2
-          && ((this.m_segments[0].atMaxAngle && this.m_segments[1].atMinAngle)
-            || (this.m_segments[0].atMinAngle && this.m_segments[1].atMaxAngle)))
-        {
-          this.m_isReaching = true;
-          this.m_targetX = this.m_tipX;
-          this.m_targetY = this.m_tipY + DPI(20);
-        console.log("hey" + this.m_tipY);
-        }
-        this.m_segments[i].m_targetX = this.m_targetX;
-        this.m_targetY = this.m_targetY + DPI(50);
-        this.m_segments[i].m_targetY = this.m_targetY;
+        this.m_isReaching = true;
+        this.m_targetX = this.m_tipX;
+        this.m_targetY = this.m_tipY + DPI(20);
       }
+      this.m_segments[i].m_targetX = this.m_targetX;
+      this.m_targetY = this.m_targetY + DPI(50);
+      this.m_segments[i].m_targetY = this.m_targetY;
     }
 
     if (this.m_isReaching)
@@ -1263,7 +1303,6 @@ function Leg(startX, startY, startAngle, startLength, parentY)
       else
       {
         this.m_isReaching = false;
-				console.log("release" + this.m_tipY);
       }
     }
   }
@@ -1354,7 +1393,8 @@ function Spider()
     
   the_scenes[PLAY_STATE].addChild(this.body);
         
-  drawGradient(0, width, 0, height, 48.0 / 256.0, the_scenes[3]);
+  gradient = drawGradient(0, width, 0, height, 48.0 / 256.0, the_scenes[3]);
+  gradient.alpha = 1.0;
   
   var h =  DPI(800) / the_grassSprite.width * the_grassSprite.height;
     
@@ -1499,7 +1539,8 @@ function Spider()
             this.m_legs[i].curlUp(j);
           else
             this.m_legs[i].curlDown(j);
-        } else
+        } 
+        else
         {
           if (j == 0)
             this.m_legs[i].curlDown(j);
