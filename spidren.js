@@ -148,7 +148,7 @@ loader.load(function(loader, resources)
   the_grassSprite = new PIXI.Sprite(resources.grass.texture);
   
   var graphics = new PIXI.Graphics();
-  graphics.beginFill(PIXI.utils.rgb2hex([1.0, 0.1875, 0.0625]));
+  graphics.beginFill(PIXI.utils.rgb2hex([1.0, 0.1875, 0.0625]), 0.5);
   graphics.drawCircle(0, 0, 100); 
   graphics.endFill();
   the_bloodTexture = graphics.generateTexture();
@@ -612,6 +612,9 @@ function setup()
 
                 babby.carriedSegment = leg.getTipSegment();
                 leg.getTipSegment().isBeingCarried = true;
+                var idx = the_scenes[PLAY_STATE].getChildIndex(babby.sprite);
+                the_scenes[PLAY_STATE].setChildIndex(leg.getTipSegment().m_drip, idx-1);
+                the_scenes[PLAY_STATE].setChildIndex(leg.getTipSegment().m_img, idx-1);
                 leg.getTipSegment().m_angle = -HALF_PI;
               }
             }
@@ -849,16 +852,18 @@ function ParticleSystem()
   {
     var particle = new PIXI.Sprite(the_bloodTexture);
     particle.acceleration = createVector(0.0, 0.1);
-    particle.velocity = createVector(random(-0.3, 0.3), random(-1.8, -2.0));
+    particle.velocity = createVector(random(-1, 1), random(-2.0, -1.0));
     particle.x = xx;// + random(-1,1);
     particle.y = yy + random(-2,2);
     particle.lifespan = 1.0;
-    particle.radius = DPI(random(0.075, 0.15));
-    particle.scale.set(particle.radius);
+    particle.radiusX = DPI(random(0.075, 0.15));
+    particle.radiusY = DPI(random(0.075, 0.15));
+    particle.scale.set(particle.radiusX, particle.radiusY);
     particle.update = function() 
     {
-      this.alpha = this.lifespan;
-      this.scale.set(this.radius * this.lifespan);
+      this.alpha = this.lifespan;;
+      var s = 
+      this.scale.set(this.radiusX * this.lifespan, this.radiusY * this.lifespan);
       this.velocity.x += this.acceleration.x;
       this.velocity.y += this.acceleration.y;
       this.x += this.velocity.x;
@@ -1126,15 +1131,18 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
   this.m_maxAngle = maxAngle;
   this.m_length = seglength;
   
-  this.m_drip = new PIXI.Graphics();
-  this.m_drip.beginFill(0xFFFFFF);
-  this.m_drip.lineStyle(1, PIXI.utils.rgb2hex([1.0, 1.0, 1.0]), 192 / 255.0);
-  this.m_drip.moveTo(0,0); 
-  this.m_drip.lineTo(0,1);
-  this.m_drip.endFill();   
-  //this.m_drip.cacheAsBitmap = true;
-  the_scenes[PLAY_STATE].addChild(this.m_drip);
-  this.m_drip.visible = false;
+  if (index == 2)    
+  {
+    this.m_drip = new PIXI.Graphics();
+    this.m_drip.beginFill(0xFFFFFF);
+    this.m_drip.lineStyle(1, PIXI.utils.rgb2hex([1.0, 1.0, 1.0]), 192 / 255.0);
+    this.m_drip.moveTo(0,0); 
+    this.m_drip.lineTo(0,1);
+    this.m_drip.endFill();   
+    //this.m_drip.cacheAsBitmap = true;
+    the_scenes[PLAY_STATE].addChild(this.m_drip);
+    this.m_drip.visible = false;
+  }
 
   this.m_img = new PIXI.Sprite(img);
   this.m_img.anchor.set(0.5);
@@ -1148,8 +1156,7 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     this.m_targetX = 0;
     this.m_targetY = 0;
     this.atMaxAngle = false;
-    this.atMinAngle = false;    
-    this.m_drip.visible = false;    
+    this.atMinAngle = false;     
   }
   
   this.setup();
@@ -1168,7 +1175,7 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
       
       var scaleY = this.m_dripY - startY;
       this.m_drip.x = this.m_x;
-      this.m_drip.y = startY;// + (scaleY * 0.5);
+      this.m_drip.y = startY;
       this.m_drip.scale.x = DPI(random(5, 15));
       this.m_drip.scale.y = scaleY;
     }
@@ -1176,7 +1183,7 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     this.m_img.x = this.m_x + Math.cos(this.m_angle) * (this.m_length * 0.5);
     this.m_img.y = this.m_y + Math.sin(this.m_angle) * (this.m_length * 0.5);
     this.m_img.rotation = this.m_angle;
-    if (this.isLeft)
+    if (isLeft)
       this.m_img.scale.set(1, -1);
     this.m_img.width = this.m_length * 1.12;
     this.m_img.height = DPI(20);
@@ -1188,13 +1195,6 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     {    
       this.m_x = this.m_prev.m_x + Math.cos(this.m_prev.m_angle) * this.m_prev.m_length; 
       this.m_y = this.m_prev.m_y + Math.sin(this.m_prev.m_angle) * this.m_prev.m_length;
-      
-      // fudge to make joints align better
-      if (isleft)
-      {
-        this.m_x -= index * DPI(0.5);
-        this.m_y += index * DPI(1.0);
-      }
     }
   }
 
@@ -1496,11 +1496,12 @@ function Spider()
   the_grassSprite.width = width;
   the_grassSprite.height = h;
   the_scenes[PLAY_STATE].addChild(the_grassSprite);
-  
+ 
+  this.m_legs[3] = new Leg(this.x-DPI(60), this.y - DPI(10), PI + QUARTER_PI * 0.33, DPI(84), this.y); 
   this.m_legs[0] = new Leg(this.x-DPI(50), this.y, PI, DPI(80), this.y);    
-  this.m_legs[3] = new Leg(this.x-DPI(60), this.y - DPI(10), PI + QUARTER_PI * 0.33, DPI(84), this.y);
-  this.m_legs[1] = new Leg(this.x+DPI(50), this.y, 0, DPI(80), this.y);
+  
   this.m_legs[2] = new Leg(this.x+DPI(60), this.y - DPI(10), -QUARTER_PI * 0.33, DPI(84), this.y);
+  this.m_legs[1] = new Leg(this.x+DPI(50), this.y, 0, DPI(80), this.y);
   
   this.head = new PIXI.Sprite(the_headNormalImage);
   this.head.anchor.set(0.5);
@@ -1547,8 +1548,8 @@ function Spider()
       for (var j = 0; j < this.m_legs[i].m_segments.length; j++)
       {
         the_scenes[PLAY_STATE].removeChild(this.m_legs[i].m_segments[j].m_img);
-        the_scenes[PLAY_STATE].removeChild(this.m_legs[i].m_segments[j].m_drip);
-      }
+      }    
+      the_scenes[PLAY_STATE].removeChild(this.m_legs[i].getTipSegment().m_drip);
     }
   }
   
