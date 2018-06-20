@@ -170,7 +170,8 @@ function gameStart()
   
   for (var i = 0; i < the_babbySpiders.length; i++)
   {
-    the_babbySpiders[i].remove();
+    if (the_babbySpiders[i])
+      the_babbySpiders[i].remove();
   }
   the_babbySpiders = new Array(BABBY_COUNT);
 }
@@ -251,7 +252,17 @@ function keyPressed(e)
 
 function keyReleased(e) 
 {
-  if (the_gameState < PLAY_STATE)
+  var code = e.keyCode ? e.keyCode : e.which;
+
+  if (code == 27) // esc
+  {
+    the_scenes[the_gameState].visible = false;
+    the_gameState = MENU_STATE_00;
+    the_scenes[the_gameState].visible = true;
+    the_doOnce = true;
+    BABBY_COUNT = 1;
+  }
+  else if (the_gameState < PLAY_STATE)
   {
     the_scenes[the_gameState].visible = false;
     the_scenes[++the_gameState].visible = true;
@@ -264,8 +275,7 @@ function keyReleased(e)
     the_doOnce = true;
   }
   else
-  {
-    var code = e.keyCode ? e.keyCode : e.which; //e.key.toUpperCase().charCodeAt(0);
+  { //e.key.toUpperCase().charCodeAt(0);
     
     // semicolon on firefox
     if (code == 59 && isFirefox)
