@@ -1,3 +1,8 @@
+// @ts-check
+//import * as PIXI from 'pixi.js';
+
+//const { Application } = require("pixi.js");
+
 //#region Globals
 var isFirefox = typeof InstallTrigger !== 'undefined';
 var MENU_STATE_00 = 0;
@@ -46,6 +51,7 @@ var vy = 0;
 var frameFloat = 0.0;
 var frameCount = 0;
 var the_scale = 2.0;
+//PIXI.TextureStyle.defaultOptions.scaleMode = 'nearest';
 
 function DPI(size)
 {
@@ -66,10 +72,13 @@ var stage = new PIXI.Container();
 //Tell the `renderer` to `render` the `stage`
 renderer.render(stage);*/
 
-
+var aspectCorrectScale; 
 function scaleToWindow()
 { 
-  var aspectCorrectScale = window.innerWidth / width;
+  if (!the_canvas)
+    return;
+
+  aspectCorrectScale = window.innerWidth / width;
   var heightScale = window.innerHeight / height;
   if (heightScale < aspectCorrectScale)
     aspectCorrectScale = heightScale;
@@ -85,72 +94,100 @@ window.onresize = function()
   scaleToWindow();
 }
 
-var app = new PIXI.Application(width, height, {backgroundColor : 0x000000, antialias: true});
-the_canvas = app.view;
-document.body.appendChild(app.view);
-app.stop();
-//#endregion
-//#region Loader
-var loader = PIXI.loader;
+var app = null;
+(async () => {
+  app = new PIXI.Application(); 
+  await app.init({width: width, height: height, backgroundColor : 0xFFFFFF, antialias: true});
+  //new PIXI.Application(width, height, {backgroundColor : 0x000000, antialias: true});
+  the_canvas = app.view;
+  document.body.appendChild(app.view);
+  app.stop();
+  //#endregion
+  //#region Loader
+  //var loader = PIXI.loader;
 
-loader.add('babbySpritesheet', 'babby.json');
-loader.add('headSpritesheet', 'head.json');
-loader.add('mandibleSpritesheet', 'mandible.json');
-loader.add('grass', 'grass.png');
-loader.add('keyboard', 'keyboard.png');
-loader.add('body0', 'body0.png');
-loader.add('body1', 'body1.png');
-loader.add('leg0', 'leg0.png');
-loader.add('leg1', 'leg1.png');
-loader.add('leg2', 'leg2.png');
-  
-loader.load(function(loader, resources)
-{
-  the_headNormalImage = PIXI.Texture.fromFrame('Head_Normal.png');
-  the_headAnnoyedImage = PIXI.Texture.fromFrame('Head_Annoyed.png');
-  the_headAngryImage = PIXI.Texture.fromFrame('Head_Angry.png');
-  the_headPainImage = PIXI.Texture.fromFrame('Head_Pain.png');
-  the_body0Image = resources.body0.texture;
-  the_body1Image = resources.body1.texture;
-  the_leg0Image = resources.leg0.texture;
-  the_leg1Image = resources.leg1.texture;
-  the_leg2Image = resources.leg2.texture;
+  PIXI.Assets.addBundle('gameAssets', {
+    babbySpritesheet: 'babby.json',
+    headSpritesheet: 'head.json',
+    mandibleSpritesheet: 'mandible.json', 
+    grass: 'grass.png', 
+    keyboard: 'keyboard.png',
+    body0: 'body0.png',
+    body1: 'body1.png',
+    leg0: 'leg0.png',
+    leg1: 'leg1.png',
+    leg2: 'leg2.png'
+  });
+
+  const loadedBundle = await PIXI.Assets.loadBundle('gameAssets');
+
+  the_headNormalImage = loadedBundle.headSpritesheet.textures['Head_Normal.png'];
+  //the_headNormalImage = PIXI.Texture.fromFrame('Head_Normal.png');
+  the_headAnnoyedImage = loadedBundle.headSpritesheet.textures['Head_Annoyed.png'];//PIXI.Texture.fromFrame('Head_Annoyed.png');
+  the_headAngryImage = loadedBundle.headSpritesheet.textures['Head_Angry.png'];//PIXI.Texture.fromFrame('Head_Angry.png');
+  the_headPainImage = loadedBundle.headSpritesheet.textures['Head_Pain.png'];//PIXI.Texture.fromFrame('Head_Pain.png');
+  the_body0Image = loadedBundle.body0;//.body0.texture;
+  the_body1Image = loadedBundle.body1;//resources.body1.texture;
+  the_leg0Image = loadedBundle.leg0;//resources.leg0.texture;
+  the_leg1Image = loadedBundle.leg1;//resources.leg1.texture;
+  the_leg2Image = loadedBundle.leg2;//resources.leg2.texture;
 
   var i;
   for (i = 0; i < 4; i++) 
   {
-       var texture = PIXI.Texture.fromFrame('Babby_Walk ' + (i+1) + '.png');
-       the_babbyWalkTextures.push(texture);
+      var texture = loadedBundle.babbySpritesheet.textures['Babby_Walk ' + (i+1) + '.png'];
+      the_babbyWalkTextures.push(texture);
   }
   for (i = 0; i < 1; i++) 
   {
-       var texture = PIXI.Texture.fromFrame('Babby_Dead ' + (i+1) + '.png');
-       the_babbyDeadTextures.push(texture);
+      var texture = loadedBundle.babbySpritesheet.textures['Babby_Dead ' + (i+1) + '.png'];
+      the_babbyDeadTextures.push(texture);
   }
   
-  the_mandibleNormalTextures.push(PIXI.Texture.fromFrame('Mandible_Normal.png'));
+  the_mandibleNormalTextures.push(loadedBundle.mandibleSpritesheet.textures['Mandible_Normal.png']);
   for (i = 0; i < 3; i++) 
   {
-       var texture = PIXI.Texture.fromFrame('Mandible_Eating ' + (i+1) + '.png');
-       the_mandibleEatingTextures.push(texture);
+      var texture = loadedBundle.mandibleSpritesheet.textures['Mandible_Eating ' + (i+1) + '.png'];
+      the_mandibleEatingTextures.push(texture);
   }  
   
-  the_keyboardSprite = new PIXI.Sprite(resources.keyboard.texture);
-  the_keyboardSprite.anchor.set(0.5);
-  the_keyboardSprite.x = width / 2;
-  the_keyboardSprite.y = height / 2;
-  the_keyboardSprite.scale.set(height / the_keyboardSprite.height);
-  the_grassSprite = new PIXI.Sprite(resources.grass.texture);
-  
-  var graphics = new PIXI.Graphics();
-  graphics.beginFill(PIXI.utils.rgb2hex([1.0, 0.1875, 0.0625]), 0.5);
-  graphics.drawCircle(0, 0, 100); 
-  graphics.endFill();
-  the_bloodTexture = graphics.generateTexture();
-  
-  setup();
-  app.start();
-});
+    the_keyboardSprite = new PIXI.Sprite(loadedBundle.keyboard);
+    the_keyboardSprite.anchor.set(0.5);
+    the_keyboardSprite.x = width / 2;
+    the_keyboardSprite.y = height / 2;
+    the_keyboardSprite.scale.set(height / the_keyboardSprite.height);
+    the_grassSprite = new PIXI.Sprite(loadedBundle.grass);
+    
+    var graphics = new PIXI.Graphics();
+    graphics.beginFill(PIXI.Color.shared.setValue([1.0, 0.1875, 0.0625]).toHex(), 0.5);
+    graphics.drawCircle(0, 0, 100); 
+    graphics.endFill();
+    the_bloodTexture = app.renderer.textureGenerator.generateTexture({
+      target: graphics//,
+      //resolution: 2, // Optional: adjust resolution for better quality
+      //antialias: true // Optional: enable anti-aliasing
+    });
+//graphics.generateTexture();
+      
+    setup();
+
+
+    // Listen for animate update
+    app.ticker.add(function(ticker) 
+    {
+      for (var i = 0; i < the_scenes.length; i++)
+      {
+        if (the_scenes[i].visible)
+          the_scenes[i].update(ticker.deltaTime);
+      }
+      //the_scenes[the_gameState].update(delta);
+      frameFloat += ticker.deltaTime;
+      frameCount = Math.floor(frameFloat);
+    });
+
+    app.start();
+
+})();
 //#endregion
 //#region Input
 function mouseReleased()
@@ -315,6 +352,7 @@ function keyReleased(e)
 }
 //#endregion
 //#region Utilities
+//import * as PIXI from "./pixi.min.mjs"
 function distSQ(x1, y1, x2, y2)
 {
   var dx = x1 - x2;
@@ -373,7 +411,7 @@ function circleLineIntersect(x1, y1, x2, y2, cx, cy, cr)
 
 function createVector(x, y)
 {
-  return new PIXI.Point(x, y);
+  return new PIXI.Point(x, y);//Phaser.Math.Vector2(x, y);
 }
 
 function random(min, max) 
@@ -391,11 +429,33 @@ function constrain(val, min, max)
     return val > max ? max : val < min ? min : val;
 }
 
-function drawGradient(left, right, top, bottom, alpha, parent=null, mask=null, g=null)
+function drawGradient(left, right, top, bottom, a, parent=null, mask=null)
 {
-  var graphics = g;
-  if (graphics == null)
-    var graphics = new PIXI.Graphics();
+
+  const gradient = new PIXI.FillGradient({
+    type: 'linear',
+    colorStops: [
+      { offset: 0, color: (245 << 16) | (143 << 8) | 143},
+      { offset: 1, color: (255 << 16) | (218 << 8) | 218},
+    ],
+  });
+
+  const graphics = new PIXI.Graphics().rect(left, top, right, bottom).fill({
+    fill: gradient,
+    alpha: a,
+  });
+  graphics.cacheAsTexture(true);
+
+  if (parent)
+    parent.addChild(graphics);
+  
+  return graphics;
+
+  /*
+  var graphics = new PIXI.Graphics();
+
+  if (!graphics)
+    return null;
   
   var lineWidth = 1;
   var r;
@@ -409,34 +469,41 @@ function drawGradient(left, right, top, bottom, alpha, parent=null, mask=null, g
   left = 0;
   right = 1;
   
+  graphics.clear(); 
     // set a fill and line style
+    //bottom = bottom * aspectCorrectScale;
   graphics.beginFill(0xFFFFFF);
   for (var i = top; i <= bottom; i += lineWidth)
   {
     var percent = i * vertScale / height;
     percent *= 75.0;
-    r = 245 + int(percent);
+    r = 245 + Math.floor(percent);
     if (r > 255)
       r = 255;
-    g = 143 + int(percent);
-    b = 143 + int(percent);
+    g = 143 + Math.floor(percent);
+    b = 143 + Math.floor(percent);
     
-    graphics.lineStyle(lineWidth, PIXI.utils.rgb2hex([r / 255,g /255,b / 255]), alpha);
+    //var color = PIXI.Color.shared.setValue([r / 255, g / 255, b / 255]).toHex()
+    //var color = PIXI.utils.rgb2hex([r / 255, g / 255, b / 255]);
+    //console.log("")
+    var color = (r << 16) | (g << 8) | b;
+    graphics.lineStyle(lineWidth, color, alpha);
     graphics.moveTo(left,i); 
     graphics.lineTo(right,i);
   }
   graphics.endFill();
-  if (mask)
-    graphics.mask = mask;
+  //if (mask)
+  //  graphics.mask = mask;
     
   graphics.scale.set(width, vertScale);
+  //graphics.scaleMode = "nearest";
     
-  graphics.cacheAsBitmap = true;
+  //graphics.cacheAsTexture(true);
   
   if (parent)
     parent.addChild(graphics);
   
-  return graphics;
+  return graphics;*/
 }
 //#endregion
 //#region Setup
@@ -468,6 +535,18 @@ function setup()
   the_font = "Amatic SC Regular";
   
   drawGradient(0, width, 0, height, 1, app.stage);
+
+  /*var titleStyle = new PIXI.TextStyle({
+    fontSize: DPI(128),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(128)
+  });
+  the_scenes[0].titleText = new PIXI.Text({
+    text: 'SPIDREN', 
+    style: titleStyle,
+  });*/
   
   // Title Screen
   the_scenes[0] = new PIXI.Container();
@@ -619,10 +698,10 @@ function setup()
       {
         var isFeeding = false;
         var isHit = false;
-        babby = the_babbySpiders[i];
+        var babby = the_babbySpiders[i];
         for (var j = 0; j < the_spider.m_legs.length; j++)
         {
-          leg = the_spider.m_legs[j];
+          var leg = the_spider.m_legs[j];
           var isOverlapping = false;
           if (!leg.m_isReaching && !babby.isStabbed && (babby.y >= the_ground || babby.carriedSegment == null)) 
             isOverlapping = leg.isOverlappingTipSegment(babby);
@@ -772,6 +851,8 @@ function setup()
   the_scenes[5].titleText.x = width/2;
   the_scenes[5].titleText.y = height/2;
   the_scenes[5].alpha = 0;
+
+  //the_canvas.style.height
   the_scenes[5].gradient = drawGradient(0, width, 0, height, 1, the_scenes[5]);
   the_scenes[5].addChild(the_scenes[5].titleText);
   the_scenes[5].update = function(delta)
@@ -808,38 +889,31 @@ function setup()
   
   the_scenes[0].visible = true;
  
-  app.renderer.plugins.interaction.on('pointerup', mouseReleased);
+  //app.renderer.plugins.interaction.on('pointerup', mouseReleased);
+  app.stage.on('pointerup', mouseReleased);
   //app.renderer.plugins.interaction.on('keydown', keyPressed);
   //app.renderer.plugins.interaction.on('keyup', keyReleased);
   window.addEventListener('keydown', keyPressed, false);
   window.addEventListener('keyup', keyReleased, false);
+  app.stage.eventMode = 'static';
+  app.stage.hitArea = app.screen;
   app.stage.interactive = true;
-  app.stage.interactiveChildren = false;
+  app.stage.interactiveChildren = false; 
 }
 
-// Listen for animate update
-app.ticker.add(function(delta) 
-{
-  for (var i = 0; i < the_scenes.length; i++)
-  {
-    if (the_scenes[i].visible)
-      the_scenes[i].update(delta);
-  }
-  //the_scenes[the_gameState].update(delta);
-  frameFloat += delta;
-  frameCount = Math.floor(frameFloat);
-});
 //#endregion
 class Blood
 {
   constructor()
   {
-    this.particles = new PIXI.particles.ParticleContainer(1500, {
-      scale: true,
-      position: true,
-      rotation: false,
-      uvs: false,
-      alpha: true
+    this.particles = new PIXI.ParticleContainer(1500, { 
+      dynamicProperties: {
+        scale: true,
+        position: true,
+        rotation: false
+        //uvs: false,
+        //alpha: true
+      }
     });
     the_scenes[PLAY_STATE].addChild(this.particles);
   }
@@ -882,7 +956,7 @@ class Blood
     }
     
     //this.particles.push(particle);
-    this.particles.addChild(particle);
+    this.particles.addParticle(particle);
   }
 
   run(delta) 
@@ -921,7 +995,7 @@ class BabbySpider
     this.stabLeg = null;
     this.health = 1.0;
     
-    this.tempDirection = 0.0;
+    this.tempDirection = new PIXI.Point();
 
     if (the_spider)
     {    
@@ -934,7 +1008,7 @@ class BabbySpider
       this.velocity = createVector((random(4, 8)), (random(-4, 0)));
     this.normalSpeed = (random(3.0, 8.0));
     
-    this.sprite = new PIXI.extras.AnimatedSprite(the_babbyWalkTextures);
+    this.sprite = new PIXI.AnimatedSprite(the_babbyWalkTextures);
     this.sprite.anchor.set(0.5);
     this.sprite.animationSpeed = 0.2;
     this.sprite.play();
@@ -1138,11 +1212,12 @@ class LegSegment
     {
       this.m_drip = new PIXI.Graphics();
       this.m_drip.beginFill(0xFFFFFF);
-      this.m_drip.lineStyle(1, PIXI.utils.rgb2hex([1.0, 1.0, 1.0]), 192 / 255.0);
+      var color = PIXI.Color.shared.setValue([1.0, 1.0, 1.0]).toHex()
+      this.m_drip.lineStyle(1, color, 192 / 255.0);
       this.m_drip.moveTo(0,0); 
       this.m_drip.lineTo(0,1);
       this.m_drip.endFill();   
-      //this.m_drip.cacheAsBitmap = true;
+      this.m_drip.cacheAsTexture(true);
       the_scenes[PLAY_STATE].addChild(this.m_drip);
       this.m_drip.visible = false;
     }
@@ -1340,13 +1415,13 @@ class Leg
 
     for (var i = 0; i < this.m_segments.length; i++)
     {
-      this.m_segments[i].m_img.blendMode = PIXI.BLEND_MODES.NORMAL;
+      this.m_segments[i].m_img.blendMode = "normal";
       if (this.shouldRemoveHealth && i == 2)
       {
         this.health -= 0.02 * delta; // .02
 
         if (frameCount % 4 == 0)
-          this.m_segments[i].m_img.blendMode = PIXI.BLEND_MODES.ADD;
+          this.m_segments[i].m_img.blendMode = "add";
           
         this.m_segments[i].update(this.m_isLeft);
       } 
@@ -1466,15 +1541,15 @@ class Spider
     this.m_legs = new Array(this.tipCount);
     this.x = width / 2;
     this.y = height - DPI(230);
-      
     this.webStrand = new PIXI.Graphics(); 
     var lineWidth = DPI(5);
     this.webStrand.beginFill(0xFFFFFF);
-    this.webStrand.lineStyle(lineWidth, PIXI.utils.rgb2hex([192 / 255, 224 / 255, 192 / 255]), 0.5);
+    var color = PIXI.Color.shared.setValue([192 / 255, 224 / 255, 192 / 255]).toHex()
+    this.webStrand.lineStyle(lineWidth, color, 0.5);
     this.webStrand.moveTo(this.x, 0);
     this.webStrand.lineTo(this.x, 1);
     this.webStrand.endFill();  
-    this.webStrand.cacheAsBitmap = true;
+    this.webStrand.cacheAsTexture(true);
 
     the_scenes[PLAY_STATE].addChild(this.webStrand);
     
@@ -1516,7 +1591,7 @@ class Spider
     this.head.anchor.set(0.5);
     the_scenes[PLAY_STATE].addChild(this.head);
     
-    this.mandibleTopLayer = new PIXI.extras.AnimatedSprite(the_mandibleEatingTextures);
+    this.mandibleTopLayer = new PIXI.AnimatedSprite(the_mandibleEatingTextures);
     this.mandibleTopLayer.anchor.set(0.5);
     this.mandibleTopLayer.animationSpeed = 0.2;
     this.mandibleTopLayer.play();
