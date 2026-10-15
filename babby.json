@@ -48,5 +48,8 @@
     "size": {"w":800,"h":72},
     "scale": "1",
     "smartupdate": ""
+},
+"animations": {
+    "babby_walk": ["Babby_Walk 1.png", "Babby_Walk 2.png", "Babby_Walk 4.png", "Babby_Walk 1.png"]
 }
 }

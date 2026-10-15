@@ -1,22 +1,22 @@
-var isFirefox = typeof InstallTrigger !== 'undefined';
+// @ts-check
+//import * as PIXI from 'pixi.js';
 
+//const { Application } = require("pixi.js");
+
+//#region Globals
+var isFirefox = typeof InstallTrigger !== 'undefined';
 var MENU_STATE_00 = 0;
 var MENU_STATE_01 = 1;
 var MENU_STATE_02 = 2;
 var PLAY_STATE = 3;
 var GAMEOVER_STATE = 4;
 var WIN_STATE = 5;
-
 var the_scenes = new Array(4);
-
 var BABBY_COUNT = 1;
-
 var the_gameState = MENU_STATE_00;
-
 var PI = Math.PI;
 var HALF_PI = Math.PI * 0.5;
 var QUARTER_PI = Math.PI * 0.25;
-
 var the_babbySpiders = new Array(BABBY_COUNT);
 var the_spider = null;
 var the_font;
@@ -38,21 +38,20 @@ var the_mandibleEatingTextures = [];
 var the_mandibleNormalTextures = [];
 var the_bloodTexture;
 var the_blood = null;
-
 var the_transitionTimer = 2;
 var the_screen_offset = 0;
 var the_screenShakeTimer = 0;
+var the_jitterTimer = 2.0;
 var the_doOnce = true;
 var the_canvas = null;
 var the_fullscreenIcon;
-
 var jtr = 4;
 var vx = 0;
 var vy = 0;
-
+var frameFloat = 0.0;
 var frameCount = 0;
-
 var the_scale = 2.0;
+//PIXI.TextureStyle.defaultOptions.scaleMode = 'nearest';
 
 function DPI(size)
 {
@@ -73,10 +72,13 @@ var stage = new PIXI.Container();
 //Tell the `renderer` to `render` the `stage`
 renderer.render(stage);*/
 
-
+var aspectCorrectScale; 
 function scaleToWindow()
 { 
-  var aspectCorrectScale = window.innerWidth / width;
+  if (!the_canvas)
+    return;
+
+  aspectCorrectScale = window.innerWidth / width;
   var heightScale = window.innerHeight / height;
   if (heightScale < aspectCorrectScale)
     aspectCorrectScale = heightScale;
@@ -92,90 +94,102 @@ window.onresize = function()
   scaleToWindow();
 }
 
-var app = new PIXI.Application(width, height, {backgroundColor : 0x000000, antialias: true});
-the_canvas = app.view;
-document.body.appendChild(app.view);
-app.stop();
-var loader = PIXI.loader;
+var app = null;
+(async () => {
+  app = new PIXI.Application(); 
+  await app.init({width: width, height: height, backgroundColor : 0xFFFFFF, antialias: true});
+  //new PIXI.Application(width, height, {backgroundColor : 0x000000, antialias: true});
+  the_canvas = app.view;
+  document.body.appendChild(app.view);
+  app.stop();
+  //#endregion
+  //#region Loader
+  //var loader = PIXI.loader;
 
-loader.add('babbySpritesheet', 'babby.json');
-loader.add('headSpritesheet', 'head.json');
-loader.add('mandibleSpritesheet', 'mandible.json');
-loader.add('grass', 'grass.png');
-loader.add('keyboard', 'keyboard.png');
-loader.add('body0', 'body0.png');
-loader.add('body1', 'body1.png');
-loader.add('leg0', 'leg0.png');
-loader.add('leg1', 'leg1.png');
-loader.add('leg2', 'leg2.png');
-  
-loader.load(function(loader, resources)
-{
-  the_headNormalImage = PIXI.Texture.fromFrame('Head_Normal.png');
-  the_headAnnoyedImage = PIXI.Texture.fromFrame('Head_Annoyed.png');
-  the_headAngryImage = PIXI.Texture.fromFrame('Head_Angry.png');
-  the_headPainImage = PIXI.Texture.fromFrame('Head_Pain.png');
-  the_body0Image = resources.body0.texture;
-  the_body1Image = resources.body1.texture;
-  the_leg0Image = resources.leg0.texture;
-  the_leg1Image = resources.leg1.texture;
-  the_leg2Image = resources.leg2.texture;
+  PIXI.Assets.addBundle('gameAssets', {
+    babbySpritesheet: 'babby.json',
+    headSpritesheet: 'head.json',
+    mandibleSpritesheet: 'mandible.json', 
+    grass: 'grass.png', 
+    keyboard: 'keyboard.png',
+    body0: 'body0.png',
+    body1: 'body1.png',
+    leg0: 'leg0.png',
+    leg1: 'leg1.png',
+    leg2: 'leg2.png'
+  });
+
+  const loadedBundle = await PIXI.Assets.loadBundle('gameAssets');
+
+  the_headNormalImage = loadedBundle.headSpritesheet.textures['Head_Normal.png'];
+  //the_headNormalImage = PIXI.Texture.fromFrame('Head_Normal.png');
+  the_headAnnoyedImage = loadedBundle.headSpritesheet.textures['Head_Annoyed.png'];//PIXI.Texture.fromFrame('Head_Annoyed.png');
+  the_headAngryImage = loadedBundle.headSpritesheet.textures['Head_Angry.png'];//PIXI.Texture.fromFrame('Head_Angry.png');
+  the_headPainImage = loadedBundle.headSpritesheet.textures['Head_Pain.png'];//PIXI.Texture.fromFrame('Head_Pain.png');
+  the_body0Image = loadedBundle.body0;//.body0.texture;
+  the_body1Image = loadedBundle.body1;//resources.body1.texture;
+  the_leg0Image = loadedBundle.leg0;//resources.leg0.texture;
+  the_leg1Image = loadedBundle.leg1;//resources.leg1.texture;
+  the_leg2Image = loadedBundle.leg2;//resources.leg2.texture;
 
   var i;
   for (i = 0; i < 4; i++) 
   {
-       var texture = PIXI.Texture.fromFrame('Babby_Walk ' + (i+1) + '.png');
-       the_babbyWalkTextures.push(texture);
+      var texture = loadedBundle.babbySpritesheet.textures['Babby_Walk ' + (i+1) + '.png'];
+      the_babbyWalkTextures.push(texture);
   }
   for (i = 0; i < 1; i++) 
   {
-       var texture = PIXI.Texture.fromFrame('Babby_Dead ' + (i+1) + '.png');
-       the_babbyDeadTextures.push(texture);
+      var texture = loadedBundle.babbySpritesheet.textures['Babby_Dead ' + (i+1) + '.png'];
+      the_babbyDeadTextures.push(texture);
   }
   
-  the_mandibleNormalTextures.push(PIXI.Texture.fromFrame('Mandible_Normal.png'));
+  the_mandibleNormalTextures.push(loadedBundle.mandibleSpritesheet.textures['Mandible_Normal.png']);
   for (i = 0; i < 3; i++) 
   {
-       var texture = PIXI.Texture.fromFrame('Mandible_Eating ' + (i+1) + '.png');
-       the_mandibleEatingTextures.push(texture);
+      var texture = loadedBundle.mandibleSpritesheet.textures['Mandible_Eating ' + (i+1) + '.png'];
+      the_mandibleEatingTextures.push(texture);
   }  
   
-  the_keyboardSprite = new PIXI.Sprite(resources.keyboard.texture);
-  the_keyboardSprite.anchor.set(0.5);
-  the_keyboardSprite.x = width / 2;
-  the_keyboardSprite.y = height / 2;
-  the_keyboardSprite.scale.set(height / the_keyboardSprite.height);
-  the_grassSprite = new PIXI.Sprite(resources.grass.texture);
-  
-  var graphics = new PIXI.Graphics();
-  graphics.beginFill(PIXI.utils.rgb2hex([1.0, 0.1875, 0.0625]), 0.5);
-  graphics.drawCircle(0, 0, 100); 
-  graphics.endFill();
-  the_bloodTexture = graphics.generateTexture();
-  
-  setup();
-  app.start();
-});
+    the_keyboardSprite = new PIXI.Sprite(loadedBundle.keyboard);
+    the_keyboardSprite.anchor.set(0.5);
+    the_keyboardSprite.x = width / 2;
+    the_keyboardSprite.y = height / 2;
+    the_keyboardSprite.scale.set(height / the_keyboardSprite.height);
+    the_grassSprite = new PIXI.Sprite(loadedBundle.grass);
+    
+    var graphics = new PIXI.Graphics();
+    graphics.beginFill(PIXI.Color.shared.setValue([1.0, 0.1875, 0.0625]).toHex(), 0.5);
+    graphics.drawCircle(0, 0, 100); 
+    graphics.endFill();
+    the_bloodTexture = app.renderer.textureGenerator.generateTexture({
+      target: graphics//,
+      //resolution: 2, // Optional: adjust resolution for better quality
+      //antialias: true // Optional: enable anti-aliasing
+    });
+//graphics.generateTexture();
+      
+    setup();
 
-function gameStart()
-{
-  the_transitionTimer = 2;
-  the_gameState = PLAY_STATE;
-  
-  if (the_spider)
-    the_spider.remove();
-  the_spider = new Spider(); 
-  if (the_blood)
-    the_blood.remove();
-  
-  for (var i = 0; i < the_babbySpiders.length; i++)
-  {
-    if (the_babbySpiders[i])
-      the_babbySpiders[i].remove();
-  }
-  the_babbySpiders = new Array(BABBY_COUNT);
-}
 
+    // Listen for animate update
+    app.ticker.add(function(ticker) 
+    {
+      for (var i = 0; i < the_scenes.length; i++)
+      {
+        if (the_scenes[i].visible)
+          the_scenes[i].update(ticker.deltaTime);
+      }
+      //the_scenes[the_gameState].update(delta);
+      frameFloat += ticker.deltaTime;
+      frameCount = Math.floor(frameFloat);
+    });
+
+    app.start();
+
+})();
+//#endregion
+//#region Input
 function mouseReleased()
 {
   //console.log("ok");
@@ -200,11 +214,6 @@ function mouseReleased()
 }
 
 /*var pkeys=[];*/
-
-function controlSpider(code)
-{
-
-}
 
 function keyPressed(e) 
 {
@@ -341,450 +350,9 @@ function keyReleased(e)
     }
   }
 }
-
-function createVector(x, y)
-{
-  return new PIXI.Point(x, y);
-}
-
-function random(min, max) 
-{
-  return Math.random() * (max - min) + min;
-}
-
-function int(f)
-{
-  return Math.floor(f);
-}
-
-function constrain(val, min, max) 
-{
-    return val > max ? max : val < min ? min : val;
-}
-
-function drawGradient(left, right, top, bottom, alpha, parent=null, mask=null, g=null)
-{
-  var graphics = g;
-  if (graphics == null)
-    var graphics = new PIXI.Graphics();
-  
-  var lineWidth = 1;
-  var r;
-  var g;
-  var b;
-  
-  var vertScale = 4;
-  top /= vertScale;
-  bottom /= vertScale;
-  
-  left = 0;
-  right = 1;
-  
-    // set a fill and line style
-  graphics.beginFill(0xFFFFFF);
-  for (var i = top; i <= bottom; i += lineWidth)
-  {
-    var percent = i * vertScale / height;
-    percent *= 75.0;
-    r = 245 + int(percent);
-    if (r > 255)
-      r = 255;
-    g = 143 + int(percent);
-    b = 143 + int(percent);
-    
-    graphics.lineStyle(lineWidth, PIXI.utils.rgb2hex([r / 255,g /255,b / 255]), alpha);
-    graphics.moveTo(left,i); 
-    graphics.lineTo(right,i);
-  }
-  graphics.endFill();
-  if (mask)
-    graphics.mask = mask;
-    
-  graphics.scale.set(width, vertScale);
-    
-  graphics.cacheAsBitmap = true;
-  
-  if (parent)
-    parent.addChild(graphics);
-  
-  return graphics;
-}
-  
-function setup() 
-{
-  MENU_STATE_00 = 0;
-  MENU_STATE_01 = 1;
-  MENU_STATE_02 = 2;
-  PLAY_STATE = 3;
-  GAMEOVER_STATE = 4;
-  WIN_STATE = 5;
-  BABBY_COUNT = 1;
-  the_gameState = MENU_STATE_00;  
-  the_babbySpiders = [];
-  the_screenShakeTimer = 0;
-  the_transitionTimer = 2;
-  the_doOnce = true;
-  scaleToWindow();
-  
-  //app.renderer.plugins.interaction.on('pointerup', mouseReleased);
-  //app.stage.on('pointerup', mouseReleased);
-  //app.stage.interactive = true;
-  //app.stage.hitArea = new PIXI.Rectangle(0,0,1000,1000);
-  
-  //the_fullscreenIcon = new FullscreenIcon(width - 20, height - 20, 12);
-
-  the_ground = height-DPI(35);
-  //the_grass = requestImage("grass.png");
-  the_font = "Amatic SC Regular";
-  
-  drawGradient(0, width, 0, height, 1, app.stage);
-  
-  // Title Screen
-  the_scenes[0] = new PIXI.Container();
-  the_scenes[0].titleText = new PIXI.Text('SPIDREN', {
-    fontSize: DPI(128),
-    fontFamily: the_font,
-    fill: "#3a0e05",
-    align: 'center',
-    padding: DPI(128)
-  });
-  the_scenes[0].titleText.anchor.set(0.5); 
-  the_scenes[0].subtitleText = new PIXI.Text('@devonsoft', {
-    fontSize: DPI(64),
-    fontFamily: the_font,
-    fill: "#3a0e05",
-    align: 'center',
-    padding: DPI(64)
-  });    
-  the_scenes[0].subtitleText.anchor.set(0.5);  
-  the_scenes[0].titleText.x = width/2;
-  the_scenes[0].titleText.y = height/2;
-  the_scenes[0].subtitleText.x = width/2;
-  the_scenes[0].subtitleText.y = height/2 + DPI(100);   
-  the_scenes[0].update = function(delta)
-  {
-    if (frameCount % 2 == 0)
-    {
-      this.titleText.vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
-      this.titleText.vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
-      this.subtitleText.vx = (width/2 + random(-jtr, jtr) - this.subtitleText.x) / 2;;
-      this.subtitleText.vy = (height/2 + random(-jtr, jtr) + DPI(100) - this.subtitleText.y) / 2;
-    }
-    this.titleText.x += this.titleText.vx;
-    this.titleText.y += this.titleText.vy;
-    this.subtitleText.x += this.subtitleText.vx;
-    this.subtitleText.y += this.subtitleText.vy; 
-  }
-  the_scenes[0].addChild(the_scenes[0].titleText, the_scenes[0].subtitleText);
-  
-  // Controls Screen
-  the_scenes[1] = new PIXI.Container();
-  the_scenes[1].addChild(the_keyboardSprite);
-  the_scenes[1].update = function(delta) {/*the_keyboardSprite.width = width; the_keyboardSprite.height = height;*/}
-  
-  // Second Controls Screen
-  the_scenes[2] = new PIXI.Container();
-  the_scenes[2].titleText = new PIXI.Text('FOCUS ON ONE LEG AT A TIME (R + D, C)', {
-    fontSize: DPI(64),
-    fontFamily: the_font,
-    fill: "#3a0e05",
-    align: 'center',
-    padding: DPI(64)
-  });
-  the_scenes[2].titleText.anchor.set(0.5); 
-  the_scenes[2].titleText.x = width/2;
-  the_scenes[2].titleText.y = height/2;
-  
-  the_scenes[2].subtitleText = new PIXI.Text('most keyboards do not allow enough simultaneous keys for more than one leg', {
-    fontSize: DPI(32),
-    fontFamily: the_font,
-    fill: "#3a0e05",
-    align: 'center',
-    padding: DPI(32)
-  });    
-  the_scenes[2].subtitleText.anchor.set(0.5);
-  the_scenes[2].subtitleText.x = width/2;
-  the_scenes[2].subtitleText.y = height/2 + DPI(50);
-  the_scenes[2].update = function(delta)
-  {
-    if (frameCount % 2 == 0)
-    {
-      vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
-      vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
-    }
-    this.titleText.x += vx;
-    this.titleText.y += vy;
-  }
-  the_scenes[2].addChild(the_scenes[2].titleText, the_scenes[2].subtitleText);
-  
-  // Play State
-  the_scenes[3] = new PIXI.Container(); 
-   
-  var h =  DPI(800) / the_grassSprite.width * the_grassSprite.height;  
-  var backgroundGrass = new PIXI.Sprite(the_grassSprite.texture);
-  backgroundGrass.x = 0;
-  backgroundGrass.y = height - h + DPI(4);
-  backgroundGrass.width = width;
-  backgroundGrass.height = h;
-  app.stage.addChild(backgroundGrass);
-  
-  //the_spider = new Spider();
-  
-  the_scenes[3].update = function(delta)
-  {
-    if (the_doOnce)
-    {
-      gameStart();
-      the_doOnce = false;
-    }
-    
-    //if (frameCount % 2)
-    {
-      this.x = random(-the_screen_offset, the_screen_offset);
-      this.y = random(-the_screen_offset, the_screen_offset);
-    }
-    if (the_blood)
-      the_blood.run();
-    the_spider.draw();
-
-    var deadBabbyCount = 0;
-    for (var i = the_babbySpiders.length-1; i >= 0 && !the_spider.buttExploding; i--)
-    {
-      the_babbySpiders[i].update();
-      if (the_babbySpiders[i].isDead)
-        deadBabbyCount += 1;
-    }  
-    if (deadBabbyCount >= BABBY_COUNT)
-    {
-      //the_scenes[the_gameState].visible = false;
-      the_gameState = WIN_STATE;
-      the_scenes[the_gameState].visible = true;
-      the_scenes[the_gameState].alpha = 0;
-    
-      if (BABBY_COUNT < 3)
-        BABBY_COUNT += 1;
-      else if (BABBY_COUNT < 7)
-        BABBY_COUNT += 2;
-      else if (BABBY_COUNT >= 7)
-        BABBY_COUNT *= 2;
-    } 
-    else
-    {          
-      for (var i = 0; i < the_babbySpiders.length && !the_spider.buttExploding; i++)
-      {
-        var isFeeding = false;
-        var isHit = false;
-        babby = the_babbySpiders[i];
-        for (var j = 0; j < the_spider.m_legs.length; j++)
-        {
-          leg = the_spider.m_legs[j];
-          var isOverlapping = false;
-          if (!leg.m_isReaching && !babby.isStabbed && (babby.y >= the_ground || babby.carriedSegment == null)) 
-            isOverlapping = leg.isOverlappingTipSegment(babby);
-
-          if (isOverlapping)
-          {
-            if (leg.m_dx != 0)
-            { 
-              isHit = true;
-              babby.speed = 20;
-              babby.x += leg.m_dx;
-              if (leg.m_dx > 0)
-                babby.direction.x = 1;
-              else if (leg.m_dx < 0)
-                babby.direction.x = -1;
-            } 
-            else if (babby.speed <= babby.normalSpeed || the_spider.tipCount == 1)
-            {
-              isFeeding = true;
-
-              if (babby.isClimbing)
-              {
-                babby.stabLeg = null;
-                babby.isClimbing = false;
-              }
-              if (babby.carriedSegment == null && dist(babby.x, babby.y, leg.m_segments[2].m_x, leg.m_segments[2].m_y) < babby.radius)
-              { 
-                leg.shouldRemoveHealth = true;
-              }
-
-              babby.stabLeg = leg;
-
-              if (leg.health <= 0)
-              {
-                babby.stabLeg = null;
-                isFeeding = false;
-                the_screenShakeTimer = 0.75;
-                if (leg.stabbedBabby != null)
-                {
-                  leg.stabbedBabby.isDead = true;
-                }
-
-                babby.carriedSegment = leg.getTipSegment();
-                leg.getTipSegment().isBeingCarried = true;
-                var idx = the_scenes[PLAY_STATE].getChildIndex(babby.sprite);
-                the_scenes[PLAY_STATE].setChildIndex(leg.getTipSegment().m_drip, idx-1);
-                the_scenes[PLAY_STATE].setChildIndex(leg.getTipSegment().m_img, idx-1);
-                leg.getTipSegment().m_angle = -HALF_PI;
-              }
-            }
-          } 
-          else if (leg.m_isReaching && leg.stabbedBabby == null && leg.getTipSegment().isBeingCarried == false)
-          {
-			var midTipX = leg.m_tipX + ((leg.getTipSegment().m_x - leg.m_tipX));// * 0.5);
-			var midTipY = leg.m_tipY + ((leg.getTipSegment().m_y - leg.m_tipY));// * 0.5);
-            isOverlapping = //dist(leg.m_tipX, leg.m_tipY, babby.x, babby.y) < babby.radius * 2;
-				//circleLineIntersect(midTipX, midTipY, leg.m_tipX, leg.m_tipY, babby.x, babby.y, babby.radius * 2.0);
-   				circleLineIntersect(leg.m_tipX, leg.m_tipY, leg.m_targetX, leg.m_targetY, babby.x, babby.y, babby.radius * 2.0);
-            if (isOverlapping)
-            {
-              babby.isStabbed = true;
-              babby.isClimbing = false;
-              babby.stabLeg = leg;
-              leg.stabbedBabby = babby;
-            }
-          } 
-          else if (the_spider.tipCount == 1 && !babby.isFeeding && !babby.isStabbed)
-          {
-            if (!leg.isBeingCarried())
-            {
-              var distSQ = (leg.m_tipX - babby.x) * (leg.m_tipX - babby.x);
-              if (distSQ < babby.speed * babby.speed)
-              {
-                babby.isClimbing = true;
-                babby.stabLeg = leg;
-              }
-            }
-          }
-        }
-        babby.isFeeding = isFeeding;
-        if (isHit)
-          babby.isFeeding = false;
-      }
-    }    
-    
-    the_screenShakeTimer -= 1 / 60.0;
-    if (the_screenShakeTimer > 0)
-    {
-      the_screen_offset = DPI(20.0) * the_screenShakeTimer;
-    } 
-    else
-      the_screen_offset = 0.0;
-  
-  }
-  
-  // GAMEOVER_STATE
-  the_scenes[4] = new PIXI.Container();
-  the_scenes[4].titleText = new PIXI.Text('THE CHILD BECOMES THE PARENT', {
-    fontSize: DPI(80),
-    fontFamily: the_font,
-    fill: "#3a0e05",
-    align: 'center',
-    padding: DPI(80)
-  });
-  the_scenes[4].titleText.anchor.set(0.5); 
-  the_scenes[4].titleText.x = width/2;
-  the_scenes[4].titleText.y = height/2;
-  the_scenes[4].alpha = 0;
-  the_scenes[4].gradient = drawGradient(0, width, 0, height, 1, the_scenes[4]);
-  the_scenes[4].addChild(the_scenes[4].titleText);
-  the_scenes[4].update = function(delta)
-  {
-    the_transitionTimer -= 1 / 60.0;
-    if (the_transitionTimer > 0)
-    {
-      this.titleText.alpha = 0;
-      if (this.alpha < 1)
-        this.alpha += 0.01;  
-      else  
-        this.alpha = 1;        
-    }
-    else
-    {
-      the_scenes[PLAY_STATE].alpha = 1;
-      the_scenes[PLAY_STATE].visible = false;
-      this.titleText.alpha = 1;
-      if (frameCount % 2 == 0)
-      {
-        vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
-        vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
-      }
-      this.titleText.x += vx;
-      this.titleText.y += vy;
-    }
-  }
- 
-  // WIN_STATE
-  the_scenes[5] = new PIXI.Container();
-  the_scenes[5].titleText = new PIXI.Text('YOU CAN BREED AGAIN', {
-    fontSize: DPI(80),
-    fontFamily: the_font,
-    fill: "#3a0e05",
-    align: 'center',
-    padding: DPI(80)
-  });
-  the_scenes[5].titleText.anchor.set(0.5); 
-  the_scenes[5].titleText.x = width/2;
-  the_scenes[5].titleText.y = height/2;
-  the_scenes[5].alpha = 0;
-  the_scenes[5].gradient = drawGradient(0, width, 0, height, 1, the_scenes[5]);
-  the_scenes[5].addChild(the_scenes[5].titleText);
-  the_scenes[5].update = function(delta)
-  {
-    the_transitionTimer -= 1 / 60.0;
-    if (the_transitionTimer > 0)
-    {
-      this.titleText.alpha = 0;
-      if (this.alpha < 1)
-        this.alpha += 0.01;  
-      else  
-        this.alpha = 1;        
-    }
-    else
-    {
-      the_scenes[PLAY_STATE].alpha = 1;
-      the_scenes[PLAY_STATE].visible = false;
-      this.titleText.alpha = 1;
-      if (frameCount % 2 == 0)
-      {
-        vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
-        vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
-      }
-      this.titleText.x += vx;
-      this.titleText.y += vy;
-    }
-  }
-   
-  for (var i = 0; i < the_scenes.length; i++)
-  {
-    app.stage.addChild(the_scenes[i]);
-    the_scenes[i].visible = false;
-  }
-  
-  the_scenes[0].visible = true;
- 
-  app.renderer.plugins.interaction.on('pointerup', mouseReleased);
-  //app.renderer.plugins.interaction.on('keydown', keyPressed);
-  //app.renderer.plugins.interaction.on('keyup', keyReleased);
-  window.addEventListener('keydown', keyPressed, false);
-  window.addEventListener('keyup', keyReleased, false);
-  app.stage.interactive = true;
-  app.stage.interactiveChildren = false;
-}
-
-// Listen for animate update
-app.ticker.add(function(delta) 
-{
-  for (var i = 0; i < the_scenes.length; i++)
-  {
-    if (the_scenes[i].visible)
-      the_scenes[i].update(delta);
-  }
-  //the_scenes[the_gameState].update(delta);
-  
-  frameCount += 1;
-});
-
+//#endregion
+//#region Utilities
+//import * as PIXI from "./pixi.min.mjs"
 function distSQ(x1, y1, x2, y2)
 {
   var dx = x1 - x2;
@@ -841,24 +409,521 @@ function circleLineIntersect(x1, y1, x2, y2, cx, cy, cr)
   }
 }
 
-// A class to describe a group of Particles
-function ParticleSystem() 
+function createVector(x, y)
 {
-  this.particles = new PIXI.particles.ParticleContainer(1500, {
-    scale: true,
-    position: true,
-    rotation: false,
-    uvs: false,
-    alpha: true
+  return new PIXI.Point(x, y);//Phaser.Math.Vector2(x, y);
+}
+
+function random(min, max) 
+{
+  return Math.random() * (max - min) + min;
+}
+
+function int(f)
+{
+  return Math.floor(f);
+}
+
+function constrain(val, min, max) 
+{
+    return val > max ? max : val < min ? min : val;
+}
+
+function drawGradient(left, right, top, bottom, a, parent=null, mask=null)
+{
+
+  const gradient = new PIXI.FillGradient({
+    type: 'linear',
+    colorStops: [
+      { offset: 0, color: (245 << 16) | (143 << 8) | 143},
+      { offset: 1, color: (255 << 16) | (218 << 8) | 218},
+    ],
   });
-  the_scenes[PLAY_STATE].addChild(this.particles);
+
+  const graphics = new PIXI.Graphics().rect(left, top, right, bottom).fill({
+    fill: gradient,
+    alpha: a,
+  });
+  graphics.cacheAsTexture(true);
+
+  if (parent)
+    parent.addChild(graphics);
   
-  this.remove = function() 
+  return graphics;
+
+  /*
+  var graphics = new PIXI.Graphics();
+
+  if (!graphics)
+    return null;
+  
+  var lineWidth = 1;
+  var r;
+  var g;
+  var b;
+  
+  var vertScale = 4;
+  top /= vertScale;
+  bottom /= vertScale;
+  
+  left = 0;
+  right = 1;
+  
+  graphics.clear(); 
+    // set a fill and line style
+    //bottom = bottom * aspectCorrectScale;
+  graphics.beginFill(0xFFFFFF);
+  for (var i = top; i <= bottom; i += lineWidth)
+  {
+    var percent = i * vertScale / height;
+    percent *= 75.0;
+    r = 245 + Math.floor(percent);
+    if (r > 255)
+      r = 255;
+    g = 143 + Math.floor(percent);
+    b = 143 + Math.floor(percent);
+    
+    //var color = PIXI.Color.shared.setValue([r / 255, g / 255, b / 255]).toHex()
+    //var color = PIXI.utils.rgb2hex([r / 255, g / 255, b / 255]);
+    //console.log("")
+    var color = (r << 16) | (g << 8) | b;
+    graphics.lineStyle(lineWidth, color, alpha);
+    graphics.moveTo(left,i); 
+    graphics.lineTo(right,i);
+  }
+  graphics.endFill();
+  //if (mask)
+  //  graphics.mask = mask;
+    
+  graphics.scale.set(width, vertScale);
+  //graphics.scaleMode = "nearest";
+    
+  //graphics.cacheAsTexture(true);
+  
+  if (parent)
+    parent.addChild(graphics);
+  
+  return graphics;*/
+}
+//#endregion
+//#region Setup
+function setup() 
+{
+  MENU_STATE_00 = 0;
+  MENU_STATE_01 = 1;
+  MENU_STATE_02 = 2;
+  PLAY_STATE = 3;
+  GAMEOVER_STATE = 4;
+  WIN_STATE = 5;
+  BABBY_COUNT = 1;
+  the_gameState = MENU_STATE_00;  
+  the_babbySpiders = [];
+  the_screenShakeTimer = 0;
+  the_transitionTimer = 2;
+  the_doOnce = true;
+  scaleToWindow();
+  
+  //app.renderer.plugins.interaction.on('pointerup', mouseReleased);
+  //app.stage.on('pointerup', mouseReleased);
+  //app.stage.interactive = true;
+  //app.stage.hitArea = new PIXI.Rectangle(0,0,1000,1000);
+  
+  //the_fullscreenIcon = new FullscreenIcon(width - 20, height - 20, 12);
+
+  the_ground = height-DPI(35);
+  //the_grass = requestImage("grass.png");
+  the_font = "Amatic SC Regular";
+  
+  drawGradient(0, width, 0, height, 1, app.stage);
+
+  /*var titleStyle = new PIXI.TextStyle({
+    fontSize: DPI(128),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(128)
+  });
+  the_scenes[0].titleText = new PIXI.Text({
+    text: 'SPIDREN', 
+    style: titleStyle,
+  });*/
+  
+  // Title Screen
+  the_scenes[0] = new PIXI.Container();
+  the_scenes[0].titleText = new PIXI.Text('SPIDREN', {
+    fontSize: DPI(128),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(128)
+  });
+  the_scenes[0].titleText.anchor.set(0.5); 
+  the_scenes[0].subtitleText = new PIXI.Text('@devonsoft', {
+    fontSize: DPI(64),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(64)
+  });    
+  the_scenes[0].subtitleText.anchor.set(0.5);  
+  the_scenes[0].titleText.x = width/2;
+  the_scenes[0].titleText.y = height/2;
+  the_scenes[0].subtitleText.x = width/2;
+  the_scenes[0].subtitleText.y = height/2 + DPI(100);   
+  the_scenes[0].update = function(delta)
+  {
+    if (frameCount % 2 == 0)
+    {
+      this.titleText.vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
+      this.titleText.vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
+      this.subtitleText.vx = (width/2 + random(-jtr, jtr) - this.subtitleText.x) / 2;;
+      this.subtitleText.vy = (height/2 + random(-jtr, jtr) + DPI(100) - this.subtitleText.y) / 2;
+    }
+    this.titleText.x += this.titleText.vx * delta;
+    this.titleText.y += this.titleText.vy * delta;
+    this.subtitleText.x += this.subtitleText.vx * delta;
+    this.subtitleText.y += this.subtitleText.vy * delta; 
+  }
+  the_scenes[0].addChild(the_scenes[0].titleText, the_scenes[0].subtitleText);
+  
+  // Controls Screen
+  the_scenes[1] = new PIXI.Container();
+  the_scenes[1].addChild(the_keyboardSprite);
+  the_scenes[1].update = function(delta) {/*the_keyboardSprite.width = width; the_keyboardSprite.height = height;*/}
+  
+  // Second Controls Screen
+  the_scenes[2] = new PIXI.Container();
+  the_scenes[2].titleText = new PIXI.Text('FOCUS ON ONE LEG AT A TIME (R + D, C)', {
+    fontSize: DPI(64),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(64)
+  });
+  the_scenes[2].titleText.anchor.set(0.5); 
+  the_scenes[2].titleText.x = width/2;
+  the_scenes[2].titleText.y = height/2;
+  
+  the_scenes[2].subtitleText = new PIXI.Text('most keyboards do not allow enough simultaneous keys for more than one leg', {
+    fontSize: DPI(32),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(32)
+  });    
+  the_scenes[2].subtitleText.anchor.set(0.5);
+  the_scenes[2].subtitleText.x = width/2;
+  the_scenes[2].subtitleText.y = height/2 + DPI(50);
+  the_scenes[2].update = function(delta)
+  {
+    if (frameCount % 2 == 0)
+    {
+      vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
+      vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
+    }
+    this.titleText.x += vx * delta;
+    this.titleText.y += vy * delta;
+  }
+  the_scenes[2].addChild(the_scenes[2].titleText, the_scenes[2].subtitleText);
+  
+  // Play State
+  the_scenes[3] = new PIXI.Container(); 
+   
+  var h =  DPI(800) / the_grassSprite.width * the_grassSprite.height;  
+  var backgroundGrass = new PIXI.Sprite(the_grassSprite.texture);
+  backgroundGrass.x = 0;
+  backgroundGrass.y = height - h + DPI(4);
+  backgroundGrass.width = width;
+  backgroundGrass.height = h;
+  app.stage.addChild(backgroundGrass);
+  
+  //the_spider = new Spider();
+  
+  the_scenes[3].update = function(delta)
+  {
+    if (the_doOnce)
+    {
+      the_transitionTimer = 2;
+      the_gameState = PLAY_STATE;
+      
+      if (the_spider)
+        the_spider.remove();
+      the_spider = new Spider(); 
+      if (the_blood)
+        the_blood.remove();
+      
+      for (var i = 0; i < the_babbySpiders.length; i++)
+      {
+        if (the_babbySpiders[i])
+          the_babbySpiders[i].remove();
+      }
+      the_babbySpiders = new Array(BABBY_COUNT);
+
+      the_doOnce = false;
+    }
+    
+    //if (frameCount % 2)
+    {
+      this.x = random(-the_screen_offset, the_screen_offset);
+      this.y = random(-the_screen_offset, the_screen_offset);
+    }
+    if (the_blood)
+      the_blood.run(delta);
+    the_spider.update(delta);
+
+    var deadBabbyCount = 0;
+    for (var i = the_babbySpiders.length-1; i >= 0 && !the_spider.buttExploding; i--)
+    {
+      the_babbySpiders[i].update(delta);
+      if (the_babbySpiders[i].isDead)
+        deadBabbyCount += 1;
+    }  
+    if (deadBabbyCount >= BABBY_COUNT)
+    {
+      //the_scenes[the_gameState].visible = false;
+      the_gameState = WIN_STATE;
+      the_scenes[the_gameState].visible = true;
+      the_scenes[the_gameState].alpha = 0;
+    
+      if (BABBY_COUNT < 3)
+        BABBY_COUNT += 1;
+      else if (BABBY_COUNT < 7)
+        BABBY_COUNT += 2;
+      else if (BABBY_COUNT >= 7)
+        BABBY_COUNT *= 2;
+    } 
+    else
+    {          
+      for (var i = 0; i < the_babbySpiders.length && !the_spider.buttExploding; i++)
+      {
+        var isFeeding = false;
+        var isHit = false;
+        var babby = the_babbySpiders[i];
+        for (var j = 0; j < the_spider.m_legs.length; j++)
+        {
+          var leg = the_spider.m_legs[j];
+          var isOverlapping = false;
+          if (!leg.m_isReaching && !babby.isStabbed && (babby.y >= the_ground || babby.carriedSegment == null)) 
+            isOverlapping = leg.isOverlappingTipSegment(babby);
+
+          if (isOverlapping)
+          {
+            if (leg.m_dx != 0)
+            { 
+              isHit = true;
+              babby.speed = 20;
+              babby.x += leg.m_dx;
+              if (leg.m_dx > 0)
+                babby.direction.x = 1;
+              else if (leg.m_dx < 0)
+                babby.direction.x = -1;
+            } 
+            else if (babby.speed <= babby.normalSpeed || the_spider.tipCount == 1)
+            {
+              isFeeding = true;
+
+              if (babby.isClimbing)
+              {
+                babby.stabLeg = null;
+                babby.isClimbing = false;
+              }
+              if (babby.carriedSegment == null && dist(babby.x, babby.y, leg.m_segments[2].m_x, leg.m_segments[2].m_y) < babby.radius)
+              { 
+                leg.shouldRemoveHealth = true;
+              }
+
+              babby.stabLeg = leg;
+
+              if (leg.health <= 0)
+              {
+                babby.stabLeg = null;
+                isFeeding = false;
+                the_screenShakeTimer = 0.75;
+                if (leg.stabbedBabby != null)
+                {
+                  leg.stabbedBabby.isDead = true;
+                }
+
+                babby.carriedSegment = leg.getTipSegment();
+                leg.getTipSegment().isBeingCarried = true;
+                var idx = the_scenes[PLAY_STATE].getChildIndex(babby.sprite);
+                the_scenes[PLAY_STATE].setChildIndex(leg.getTipSegment().m_drip, idx-1);
+                the_scenes[PLAY_STATE].setChildIndex(leg.getTipSegment().m_img, idx-1);
+                leg.getTipSegment().m_angle = -HALF_PI;
+              }
+            }
+          } 
+          else if (leg.m_isReaching && leg.stabbedBabby == null && leg.getTipSegment().isBeingCarried == false)
+          {
+            var midTipX = leg.m_tipX + ((leg.getTipSegment().m_x - leg.m_tipX));// * 0.5);
+            var midTipY = leg.m_tipY + ((leg.getTipSegment().m_y - leg.m_tipY));// * 0.5);
+                  isOverlapping = //dist(leg.m_tipX, leg.m_tipY, babby.x, babby.y) < babby.radius * 2;
+              //circleLineIntersect(midTipX, midTipY, leg.m_tipX, leg.m_tipY, babby.x, babby.y, babby.radius * 2.0);
+   				  circleLineIntersect(leg.m_tipX, leg.m_tipY, leg.m_targetX, leg.m_targetY, babby.x, babby.y, babby.radius * 2.0);
+            if (isOverlapping)
+            {
+              babby.isStabbed = true;
+              babby.isClimbing = false;
+              babby.stabLeg = leg;
+              leg.stabbedBabby = babby;
+            }
+          } 
+          else if (the_spider.tipCount == 1 && !babby.isFeeding && !babby.isStabbed)
+          {
+            if (!leg.isBeingCarried())
+            {
+              var distSQ = (leg.m_tipX - babby.x) * (leg.m_tipX - babby.x);
+              if (distSQ < babby.speed * babby.speed)
+              {
+                babby.isClimbing = true;
+                babby.stabLeg = leg;
+              }
+            }
+          }
+        }
+        babby.isFeeding = isFeeding;
+        if (isHit)
+          babby.isFeeding = false;
+      }
+    }    
+    
+    the_screenShakeTimer -= 1 / 60.0 * delta;
+    if (the_screenShakeTimer > 0)
+    {
+      the_screen_offset = DPI(20.0) * the_screenShakeTimer;
+    } 
+    else
+      the_screen_offset = 0.0;
+  
+  }
+  
+  // GAMEOVER_STATE
+  the_scenes[4] = new PIXI.Container();
+  the_scenes[4].titleText = new PIXI.Text('THE CHILD BECOMES THE PARENT', {
+    fontSize: DPI(80),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(80)
+  });
+  the_scenes[4].titleText.anchor.set(0.5); 
+  the_scenes[4].titleText.x = width/2;
+  the_scenes[4].titleText.y = height/2;
+  the_scenes[4].alpha = 0;
+  the_scenes[4].gradient = drawGradient(0, width, 0, height, 1, the_scenes[4]);
+  the_scenes[4].addChild(the_scenes[4].titleText);
+  the_scenes[4].update = function(delta)
+  {
+    the_transitionTimer -= 1 / 60.0 * delta;
+    if (the_transitionTimer > 0)
+    {
+      this.titleText.alpha = 0;
+      if (this.alpha < 1)
+        this.alpha += 0.01;  
+      else  
+        this.alpha = 1;        
+    }
+    else
+    {
+      the_scenes[PLAY_STATE].alpha = 1;
+      the_scenes[PLAY_STATE].visible = false;
+      this.titleText.alpha = 1;
+      if (frameCount % 2 == 0)
+      {
+        vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
+        vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
+      }
+      this.titleText.x += vx * delta;
+      this.titleText.y += vy * delta;
+    }
+  }
+ 
+  // WIN_STATE
+  the_scenes[5] = new PIXI.Container();
+  the_scenes[5].titleText = new PIXI.Text('YOU CAN BREED AGAIN', {
+    fontSize: DPI(80),
+    fontFamily: the_font,
+    fill: "#3a0e05",
+    align: 'center',
+    padding: DPI(80)
+  });
+  the_scenes[5].titleText.anchor.set(0.5); 
+  the_scenes[5].titleText.x = width/2;
+  the_scenes[5].titleText.y = height/2;
+  the_scenes[5].alpha = 0;
+
+  //the_canvas.style.height
+  the_scenes[5].gradient = drawGradient(0, width, 0, height, 1, the_scenes[5]);
+  the_scenes[5].addChild(the_scenes[5].titleText);
+  the_scenes[5].update = function(delta)
+  {
+    the_transitionTimer -= 1 / 60.0 * delta;
+    if (the_transitionTimer > 0)
+    {
+      this.titleText.alpha = 0;
+      if (this.alpha < 1)
+        this.alpha += 0.01;  
+      else  
+        this.alpha = 1;        
+    }
+    else
+    {
+      the_scenes[PLAY_STATE].alpha = 1;
+      the_scenes[PLAY_STATE].visible = false;
+      this.titleText.alpha = 1;
+      if (frameCount % 2 == 0)
+      {
+        vx = (width/2 + random(-jtr, jtr) - this.titleText.x) / 2;
+        vy = (height/2 + random(-jtr, jtr) - this.titleText.y) / 2;
+      }
+      this.titleText.x += vx * delta;
+      this.titleText.y += vy * delta;
+    }
+  }
+   
+  for (var i = 0; i < the_scenes.length; i++)
+  {
+    app.stage.addChild(the_scenes[i]);
+    the_scenes[i].visible = false;
+  }
+  
+  the_scenes[0].visible = true;
+ 
+  //app.renderer.plugins.interaction.on('pointerup', mouseReleased);
+  app.stage.on('pointerup', mouseReleased);
+  //app.renderer.plugins.interaction.on('keydown', keyPressed);
+  //app.renderer.plugins.interaction.on('keyup', keyReleased);
+  window.addEventListener('keydown', keyPressed, false);
+  window.addEventListener('keyup', keyReleased, false);
+  app.stage.eventMode = 'static';
+  app.stage.hitArea = app.screen;
+  app.stage.interactive = true;
+  app.stage.interactiveChildren = false; 
+}
+
+//#endregion
+class Blood
+{
+  constructor()
+  {
+    this.particles = new PIXI.ParticleContainer(1500, { 
+      dynamicProperties: {
+        scale: true,
+        position: true,
+        rotation: false
+        //uvs: false,
+        //alpha: true
+      }
+    });
+    the_scenes[PLAY_STATE].addChild(this.particles);
+  }
+  
+  remove() 
   {
     the_scenes[PLAY_STATE].removeChild(this.particles);
   }
 
-  this.addParticle = function(xx, yy) 
+  addParticle(xx, yy) 
   {
     var particle = new PIXI.Sprite(the_bloodTexture);
     particle.acceleration = createVector(0.0, 0.1);
@@ -869,16 +934,14 @@ function ParticleSystem()
     particle.radiusX = DPI(random(0.075, 0.15));
     particle.radiusY = DPI(random(0.075, 0.15));
     particle.scale.set(particle.radiusX, particle.radiusY);
-    particle.update = function() 
+    particle.update = function(delta) 
     {
-      this.alpha = this.lifespan;;
-      var s = 
+      this.alpha = this.lifespan;
       this.scale.set(this.radiusX * this.lifespan, this.radiusY * this.lifespan);
       this.velocity.x += this.acceleration.x;
       this.velocity.y += this.acceleration.y;
-      this.x += this.velocity.x;
-      this.y += this.velocity.y;
-      this.lifespan -= .009;
+      this.x += this.velocity.x * delta;
+      this.lifespan -= .009 * delta;
     }
     particle.isDead = function()
     {
@@ -893,15 +956,15 @@ function ParticleSystem()
     }
     
     //this.particles.push(particle);
-    this.particles.addChild(particle);
+    this.particles.addParticle(particle);
   }
 
-  this.run = function() 
+  run(delta) 
   {
     for (var i = this.particles.children.length-1; i >= 0; i--) 
     {
       var p = this.particles.children[i];
-      p.update();
+      p.update(delta);
       if (p.isDead()) 
       {
         this.particles.removeChildAt(i);
@@ -909,55 +972,59 @@ function ParticleSystem()
     }   
   }
 };
-
-function BabbySpider()
+class BabbySpider
 {
-  this.x = random(DPI(50), height - DPI(50));
-  this.y = height - DPI(50);
-  this.direction = createVector(1, 0);
-  this.speed = (4.0);
-  this.normalSpeed = (4.0);
-  this.radius = DPI(15.0);
+  constructor()
+  {
+    this.x = random(DPI(50), height - DPI(50));
+    this.y = height - DPI(50);
+    this.direction = createVector(1, 0);
+    this.speed = (4.0);
+    this.normalSpeed = (4.0);
+    this.radius = DPI(15.0);
 
-  // states
-  this.isSpawning = true;
-  this.isFeeding = false;
-  this.isThrowing = false;
-  this.isStabbed = false;
-  this.isClimbing = false;
-  this.isDead = false;
+    // states
+    this.isSpawning = true;
+    this.isFeeding = false;
+    this.isThrowing = false;
+    this.isStabbed = false;
+    this.isClimbing = false;
+    this.isDead = false;
 
-  this.carriedSegment = null;
-  this.stabLeg = null;
-  this.health = 1.0;
-  
-  this.tempDirection = 0.0;
+    this.carriedSegment = null;
+    this.stabLeg = null;
+    this.health = 1.0;
+    
+    this.tempDirection = new PIXI.Point();
 
-  if (the_spider)
-  {    
-    this.x = the_spider.x;
-    this.y = the_spider.y - DPI(150);
+    if (the_spider)
+    {    
+      this.x = the_spider.x;
+      this.y = the_spider.y - DPI(150);
+    }
+    if (random(1) > 0.5)
+      this.velocity = createVector((random(-8, -4)), (random(-4, 0)));
+    else
+      this.velocity = createVector((random(4, 8)), (random(-4, 0)));
+    this.normalSpeed = (random(3.0, 8.0));
+    
+    this.sprite = new PIXI.AnimatedSprite(the_babbyWalkTextures);
+    this.sprite.anchor.set(0.5);
+    this.sprite.animationSpeed = 0.2;
+    this.sprite.play();
+    
+    the_scenes[PLAY_STATE].addChild(this.sprite);
   }
-  if (random(1) > 0.5)
-    this.velocity = createVector((random(-8, -4)), (random(-4, 0)));
-  else
-    this.velocity = createVector((random(4, 8)), (random(-4, 0)));
-  this.normalSpeed = (random(3.0, 8.0));
   
-  this.sprite = new PIXI.extras.AnimatedSprite(the_babbyWalkTextures);
-  this.sprite.anchor.set(0.5);
-  this.sprite.animationSpeed = 0.2;
-  this.sprite.play();
-  
-  the_scenes[PLAY_STATE].addChild(this.sprite);
-  
-  this.remove = function()
+  remove()
   {
     the_scenes[PLAY_STATE].removeChild(this.sprite);
   }
   
-  this.update = function(delta)
+  update(delta)
   {         
+    var dt = delta;
+
     if (this.isDead || this.isSpawning)
     { 
       if (this.y >= the_ground - this.radius)
@@ -968,9 +1035,9 @@ function BabbySpider()
       } 
       else
       {
-        this.velocity.y += (0.08);
-        this.x += this.velocity.x;
-        this.y += this.velocity.y;
+        this.velocity.y += (0.08) * dt;
+        this.x += this.velocity.x * dt;
+        this.y += this.velocity.y * dt;
       }
     } 
     else if (this.isClimbing)
@@ -996,8 +1063,8 @@ function BabbySpider()
         {
           tempDirection.x = magnitude > 0 ? tempDirection.x / magnitude : 0;
           tempDirection.y = magnitude > 0 ? tempDirection.y / magnitude : 0;
-          this.y += tempDirection.y * this.speed;
-          this.x += tempDirection.x * this.speed;
+          this.y += tempDirection.y * this.speed * dt;
+          this.x += tempDirection.x * this.speed * dt;
         }
         this.velocity.y = 0;
       }
@@ -1018,7 +1085,7 @@ function BabbySpider()
           
           for (var p = 0; p < 10; p++)
             the_blood.addParticle(this.x, this.y);
-          this.health -= 0.01; 
+          this.health -= 0.01 * dt; 
         } 
         else
         {
@@ -1031,7 +1098,7 @@ function BabbySpider()
     {
       if (this.carriedSegment != null)
       {
-        this.carriedSegment.m_y -= 10;//this.speed;
+        this.carriedSegment.m_y -= 10 * dt;//this.speed;
         if (this.carriedSegment.m_y < (the_spider.y + this.carriedSegment.m_length))
         {
           this.carriedSegment.m_isDripping = true;
@@ -1053,7 +1120,7 @@ function BabbySpider()
     {
       if (this.carriedSegment == null)
       {
-        if (!this.stabLeg.shouldRemoveHealth || frameCount % 2 == 0)
+        if (!this.stabLeg.shouldRemoveHealth || the_jitterTimer == 2.0)
         {
           this.tempDirection = createVector(
             this.stabLeg.m_segments[2].m_x - this.x, 
@@ -1063,15 +1130,15 @@ function BabbySpider()
 
         this.tempDirection.x = magnitude > 0 ? this.tempDirection.x / magnitude : 0;
         this.tempDirection.y = magnitude > 0 ? this.tempDirection.y / magnitude : 0;
-        this.y += this.tempDirection.y * this.speed;
-        this.x += this.tempDirection.x * this.speed;
+        this.y += this.tempDirection.y * this.speed * dt;
+        this.x += this.tempDirection.x * this.speed * dt;
       }
       this.speed = this.normalSpeed;
     } 
     else
     {
       this.velocity.x = this.direction.x * this.speed;
-      this.x += this.velocity.x;
+      this.x += this.velocity.x * dt;
       if (this.speed > this.normalSpeed)
         this.speed *= 0.9;
 
@@ -1087,8 +1154,8 @@ function BabbySpider()
 
       if (this.y < the_ground - this.radius)
       {
-        this.velocity.y += (0.04);
-        this.y += this.velocity.y;
+        this.velocity.y += (0.04) * dt;
+        this.y += this.velocity.y * dt;
       } else
         this.y = the_ground - this.radius;
 
@@ -1126,39 +1193,43 @@ function BabbySpider()
     }
   }
 };
-
-  
-function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, img)
+//#region Spider  
+class LegSegment
 {
-
-  this.m_prev = null;
-
-  this.m_x = xx;
-  this.m_y = yy;
-  this.m_startAngle = startAngle;
-  this.m_angle = startAngle;
-  this.m_minAngle = minAngle;
-  this.m_maxAngle = maxAngle;
-  this.m_length = seglength;
-  
-  if (index == 2)    
+  constructor(startAngle, minAngle, maxAngle, xx, yy, seglength, index, img)
   {
-    this.m_drip = new PIXI.Graphics();
-    this.m_drip.beginFill(0xFFFFFF);
-    this.m_drip.lineStyle(1, PIXI.utils.rgb2hex([1.0, 1.0, 1.0]), 192 / 255.0);
-    this.m_drip.moveTo(0,0); 
-    this.m_drip.lineTo(0,1);
-    this.m_drip.endFill();   
-    //this.m_drip.cacheAsBitmap = true;
-    the_scenes[PLAY_STATE].addChild(this.m_drip);
-    this.m_drip.visible = false;
+    this.m_prev = null;
+
+    this.m_x = xx;
+    this.m_y = yy;
+    this.m_startAngle = startAngle;
+    this.m_angle = startAngle;
+    this.m_minAngle = minAngle;
+    this.m_maxAngle = maxAngle;
+    this.m_length = seglength;
+    
+    if (index == 2)    
+    {
+      this.m_drip = new PIXI.Graphics();
+      this.m_drip.beginFill(0xFFFFFF);
+      var color = PIXI.Color.shared.setValue([1.0, 1.0, 1.0]).toHex()
+      this.m_drip.lineStyle(1, color, 192 / 255.0);
+      this.m_drip.moveTo(0,0); 
+      this.m_drip.lineTo(0,1);
+      this.m_drip.endFill();   
+      this.m_drip.cacheAsTexture(true);
+      the_scenes[PLAY_STATE].addChild(this.m_drip);
+      this.m_drip.visible = false;
+    }
+
+    this.m_img = new PIXI.Sprite(img);
+    this.m_img.anchor.set(0.5);
+    the_scenes[PLAY_STATE].addChild(this.m_img);
+    
+    this.setup();
   }
 
-  this.m_img = new PIXI.Sprite(img);
-  this.m_img.anchor.set(0.5);
-  the_scenes[PLAY_STATE].addChild(this.m_img);
-   
-  this.setup = function()
+  setup()
   {
     this.m_isReaching = false;
     this.isBeingCarried = false;
@@ -1168,10 +1239,8 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     this.atMaxAngle = false;
     this.atMinAngle = false;     
   }
-  
-  this.setup();
 
-  this.draw = function(isLeft) 
+  update(isLeft, delta) 
   { 
     if (this.m_isDripping)
     {
@@ -1180,7 +1249,7 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
       var startY = this.m_y - this.m_length;
       if (this.m_dripY < the_ground)
       {
-        this.m_dripY += DPI(2);
+        this.m_dripY += DPI(2) * delta;
       }
       
       var scaleY = this.m_dripY - startY;
@@ -1199,7 +1268,7 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     this.m_img.height = DPI(20);
   }
 
-  this.calculatePosition = function(isleft) 
+  calculatePosition(isleft) 
   {
     if (this.m_prev != null && !this.isBeingCarried)
     {    
@@ -1208,7 +1277,7 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     }
   }
 
-  this.calculateAngle = function() 
+  calculateAngle() 
   {
     if (this.isBeingCarried)
       return;
@@ -1236,14 +1305,14 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
 
   }
 
-  this.isCircleOverlapping = function(cx, cy, cr)
+  isCircleOverlapping(cx, cy, cr)
   {
     var x2 = this.m_x + Math.cos(this.m_angle) * this.m_length;
     var y2 = this.m_y + Math.sin(this.m_angle) * this.m_length; 
     return circleLineIntersect(m_x, m_y, x2, y2, cx, cy, cr);
   }
 
-  this.reach = function()
+  reach()
   {
     if (this.isBeingCarried)
       return;
@@ -1262,46 +1331,51 @@ function LegSegment(startAngle, minAngle, maxAngle, xx, yy, seglength, index, im
     }
   }
 
-  this.curl = function(amount)
+  curl(amount)
   {
     if (!this.isBeingCarried)
       this.m_angle += amount;
   }
 };
 
-function Leg(startX, startY, startAngle, startLength, parentY)
+class Leg
 {
-  this.m_segmentCount = 3;
-  this.m_segments = new Array(this.m_segmentCount);
-  this.m_buttons = new Array(this.m_segmentCount);
-
-  this.m_isLeft = true;
-
-  var heightChange = height - DPI(360);
-  var offset = ((parentY - heightChange) / (startY - heightChange));
-
-  if (startAngle > HALF_PI)
+  constructor(startX, startY, startAngle, startLength, parentY)
   {
-    this.m_segments[0] = new LegSegment(startAngle, -QUARTER_PI, QUARTER_PI, startX, startY, startLength, 0, the_leg0Image);
-    this.m_segments[1] = new LegSegment(-QUARTER_PI* offset, -QUARTER_PI * offset, 0, 0, 0, startLength * offset, 1, the_leg1Image);
-    this.m_segments[2] = new LegSegment(-QUARTER_PI* offset, -QUARTER_PI * offset, 0, 0, 0, startLength * offset, 2, the_leg2Image);
+    this.m_segmentCount = 3;
+    this.m_segments = new Array(this.m_segmentCount);
+    this.m_buttons = new Array(this.m_segmentCount);
+
     this.m_isLeft = true;
-  } 
-  else
-  {
-    this.m_segments[0] = new LegSegment(startAngle, -QUARTER_PI, QUARTER_PI, startX, startY, startLength, 0, the_leg0Image);
-    this.m_segments[1] = new LegSegment(QUARTER_PI* offset, 0, QUARTER_PI * offset, 0, 0, startLength * offset, 1, the_leg1Image);  
-    this.m_segments[2] = new LegSegment(QUARTER_PI* offset, 0, QUARTER_PI * offset, 0, 0, startLength * offset, 2, the_leg2Image);
-    this.m_isLeft = false;
+
+    var heightChange = height - DPI(360);
+    var offset = ((parentY - heightChange) / (startY - heightChange));
+
+    if (startAngle > HALF_PI)
+    {
+      this.m_segments[0] = new LegSegment(startAngle, -QUARTER_PI, QUARTER_PI, startX, startY, startLength, 0, the_leg0Image);
+      this.m_segments[1] = new LegSegment(-QUARTER_PI* offset, -QUARTER_PI * offset, 0, 0, 0, startLength * offset, 1, the_leg1Image);
+      this.m_segments[2] = new LegSegment(-QUARTER_PI* offset, -QUARTER_PI * offset, 0, 0, 0, startLength * offset, 2, the_leg2Image);
+      this.m_isLeft = true;
+    } 
+    else
+    {
+      this.m_segments[0] = new LegSegment(startAngle, -QUARTER_PI, QUARTER_PI, startX, startY, startLength, 0, the_leg0Image);
+      this.m_segments[1] = new LegSegment(QUARTER_PI* offset, 0, QUARTER_PI * offset, 0, 0, startLength * offset, 1, the_leg1Image);  
+      this.m_segments[2] = new LegSegment(QUARTER_PI* offset, 0, QUARTER_PI * offset, 0, 0, startLength * offset, 2, the_leg2Image);
+      this.m_isLeft = false;
+    }
+
+    for (var i = 1; i < this.m_segments.length; i++)
+    {
+      this.m_segments[i].m_prev = this.m_segments[i-1];
+      this.m_segments[i].m_angle = this.m_segments[i-1].m_angle+this.m_segments[i].m_startAngle;
+    }   
+    
+    this.setup();
   }
 
-  for (var i = 1; i < this.m_segments.length; i++)
-  {
-    this.m_segments[i].m_prev = this.m_segments[i-1];
-    this.m_segments[i].m_angle = this.m_segments[i-1].m_angle+this.m_segments[i].m_startAngle;
-  }   
-
-  this.setup = function()
+  setup()
   {
     this.m_isReaching = false;
     this.shouldRemoveHealth = false;
@@ -1322,9 +1396,7 @@ function Leg(startX, startY, startAngle, startLength, parentY)
     }
   }
   
-  this.setup();
-  
-  this.draw = function()
+  update(delta)
   {   
     if (this.m_buttons[1] != 0)
     {
@@ -1343,20 +1415,20 @@ function Leg(startX, startY, startAngle, startLength, parentY)
 
     for (var i = 0; i < this.m_segments.length; i++)
     {
-      this.m_segments[i].m_img.blendMode = PIXI.BLEND_MODES.NORMAL;
+      this.m_segments[i].m_img.blendMode = "normal";
       if (this.shouldRemoveHealth && i == 2)
       {
-        this.health -= 0.02; // .02
+        this.health -= 0.02 * delta; // .02
 
         if (frameCount % 4 == 0)
-          this.m_segments[i].m_img.blendMode = PIXI.BLEND_MODES.ADD;
+          this.m_segments[i].m_img.blendMode = "add";
           
-        this.m_segments[i].draw(this.m_isLeft);
+        this.m_segments[i].update(this.m_isLeft);
       } 
       else
       {
         if (!this.m_segments[i].isBeingCarried)
-          this.m_segments[i].draw(this.m_isLeft);
+          this.m_segments[i].update(this.m_isLeft, delta);
       }
     }
 
@@ -1376,7 +1448,7 @@ function Leg(startX, startY, startAngle, startLength, parentY)
     this.shouldRemoveHealth = false;
   }
 
-  this.reach = function(i)
+  reach(i)
   {
     if (this.m_tipY >= the_ground || this.m_segments[i].isBeingCarried)
     {  
@@ -1410,7 +1482,7 @@ function Leg(startX, startY, startAngle, startLength, parentY)
     }
   }
 
-  this.curlUp = function(i)
+  curlUp(i)
   {
     if (this.m_isReaching)
       return;
@@ -1421,7 +1493,7 @@ function Leg(startX, startY, startAngle, startLength, parentY)
       this.m_segments[i].curl((i+1) * -this.curlSpeed);
   }
 
-  this.curlDown = function(i)
+  curlDown(i)
   {
     if (this.m_isReaching)
       return;
@@ -1432,13 +1504,13 @@ function Leg(startX, startY, startAngle, startLength, parentY)
       this.m_segments[i].curl((i+1) * this.curlSpeed);
   }
 
-  this.pressButton = function(i)
+  pressButton(i)
   {
     if (this.m_buttons[i] == 0)
       this.m_buttons[i] = 1;
   }
 
-  this.isOverlappingTipSegment = function(b)
+  isOverlappingTipSegment(b)
   {
     if (this.getTipSegment().isBeingCarried)
       return false;
@@ -1450,84 +1522,89 @@ function Leg(startX, startY, startAngle, startLength, parentY)
     return circleLineIntersect(this.getTipSegment().m_x, this.getTipSegment().m_y, this.m_tipX, this.m_tipY, b.x, b.y, b.radius);
   }
 
-  this.isBeingCarried = function()
+  isBeingCarried()
   {
     return this.getTipSegment().isBeingCarried;
   }
 
-  this.getTipSegment = function()
+  getTipSegment()
   {
     return this.m_segments[this.m_segments.length-1];
   }
 };
 
-function Spider()
+class Spider
 {
-  this.tipCount = 8;
-  this.m_legs = new Array(this.tipCount);
-  this.x = width / 2;
-  this.y = height - DPI(230);
-     
-  this.webStrand = new PIXI.Graphics(); 
-  var lineWidth = DPI(5);
-  this.webStrand.beginFill(0xFFFFFF);
-  this.webStrand.lineStyle(lineWidth, PIXI.utils.rgb2hex([192 / 255, 224 / 255, 192 / 255]), 0.5);
-  this.webStrand.moveTo(this.x, 0);
-  this.webStrand.lineTo(this.x, 1);
-  this.webStrand.endFill();  
-  this.webStrand.cacheAsBitmap = true;
+  constructor()
+  {
+    this.tipCount = 8;
+    this.m_legs = new Array(this.tipCount);
+    this.x = width / 2;
+    this.y = height - DPI(230);
+    this.webStrand = new PIXI.Graphics(); 
+    var lineWidth = DPI(5);
+    this.webStrand.beginFill(0xFFFFFF);
+    var color = PIXI.Color.shared.setValue([192 / 255, 224 / 255, 192 / 255]).toHex()
+    this.webStrand.lineStyle(lineWidth, color, 0.5);
+    this.webStrand.moveTo(this.x, 0);
+    this.webStrand.lineTo(this.x, 1);
+    this.webStrand.endFill();  
+    this.webStrand.cacheAsTexture(true);
 
-  the_scenes[PLAY_STATE].addChild(this.webStrand);
-  
-  this.butt = new PIXI.Sprite(the_body0Image);
-  this.butt.anchor.set(0.5);
-  the_scenes[PLAY_STATE].addChild(this.butt);
- 
-  this.m_legs[6] = new Leg(this.x+DPI(68), this.y - DPI(30), -QUARTER_PI, DPI(98), this.y);
-  this.m_legs[7] = new Leg(this.x-DPI(68), this.y - DPI(30), PI + QUARTER_PI, DPI(98), this.y);  
+    the_scenes[PLAY_STATE].addChild(this.webStrand);
     
-  drawGradient(0, width, 0, height, 64.0 / 256.0, the_scenes[3]); 
+    this.butt = new PIXI.Sprite(the_body0Image);
+    this.butt.anchor.set(0.5);
+    the_scenes[PLAY_STATE].addChild(this.butt);
   
-  this.body = new PIXI.Sprite(the_body1Image);
-  this.body.anchor.set(0.5);  
+    this.m_legs[6] = new Leg(this.x+DPI(68), this.y - DPI(30), -QUARTER_PI, DPI(98), this.y);
+    this.m_legs[7] = new Leg(this.x-DPI(68), this.y - DPI(30), PI + QUARTER_PI, DPI(98), this.y);  
+      
+    drawGradient(0, width, 0, height, 64.0 / 256.0, the_scenes[3]); 
+    
+    this.body = new PIXI.Sprite(the_body1Image);
+    this.body.anchor.set(0.5);  
 
-  this.m_legs[4] = new Leg(this.x+DPI(65), this.y - DPI(20), -QUARTER_PI * 0.65, DPI(90), this.y);
-  this.m_legs[5] = new Leg(this.x-DPI(65), this.y - DPI(20), PI + QUARTER_PI * 0.65, DPI(90), this.y); 
+    this.m_legs[4] = new Leg(this.x+DPI(65), this.y - DPI(20), -QUARTER_PI * 0.65, DPI(90), this.y);
+    this.m_legs[5] = new Leg(this.x-DPI(65), this.y - DPI(20), PI + QUARTER_PI * 0.65, DPI(90), this.y); 
+      
+    the_scenes[PLAY_STATE].addChild(this.body);
+          
+    var gradient = drawGradient(0, width, 0, height, 48.0 / 256.0, the_scenes[3]);
+    gradient.alpha = 1.0;
     
-  the_scenes[PLAY_STATE].addChild(this.body);
-        
-  gradient = drawGradient(0, width, 0, height, 48.0 / 256.0, the_scenes[3]);
-  gradient.alpha = 1.0;
+    var h =  DPI(800) / the_grassSprite.width * the_grassSprite.height;
+      
+    the_grassSprite.x = 0;
+    the_grassSprite.y = height - h + DPI(4);
+    the_grassSprite.width = width;
+    the_grassSprite.height = h;
+    the_scenes[PLAY_STATE].addChild(the_grassSprite);
   
-  var h =  DPI(800) / the_grassSprite.width * the_grassSprite.height;
+    this.m_legs[3] = new Leg(this.x-DPI(60), this.y - DPI(10), PI + QUARTER_PI * 0.33, DPI(84), this.y); 
+    this.m_legs[0] = new Leg(this.x-DPI(50), this.y, PI, DPI(80), this.y);    
     
-  the_grassSprite.x = 0;
-  the_grassSprite.y = height - h + DPI(4);
-  the_grassSprite.width = width;
-  the_grassSprite.height = h;
-  the_scenes[PLAY_STATE].addChild(the_grassSprite);
- 
-  this.m_legs[3] = new Leg(this.x-DPI(60), this.y - DPI(10), PI + QUARTER_PI * 0.33, DPI(84), this.y); 
-  this.m_legs[0] = new Leg(this.x-DPI(50), this.y, PI, DPI(80), this.y);    
-  
-  this.m_legs[2] = new Leg(this.x+DPI(60), this.y - DPI(10), -QUARTER_PI * 0.33, DPI(84), this.y);
-  this.m_legs[1] = new Leg(this.x+DPI(50), this.y, 0, DPI(80), this.y);
-  
-  this.head = new PIXI.Sprite(the_headNormalImage);
-  this.head.anchor.set(0.5);
-  the_scenes[PLAY_STATE].addChild(this.head);
-  
-  this.mandibleTopLayer = new PIXI.extras.AnimatedSprite(the_mandibleEatingTextures);
-  this.mandibleTopLayer.anchor.set(0.5);
-  this.mandibleTopLayer.animationSpeed = 0.2;
-  this.mandibleTopLayer.play();
-  this.mandibleTopLayer.visible = false;
-  
-  this.mandible = new PIXI.Sprite(the_mandibleNormalTextures[0]);
-  this.mandible.anchor.set(0.5);
-  the_scenes[PLAY_STATE].addChild(this.mandible);
-   
-  this.setup = function()
+    this.m_legs[2] = new Leg(this.x+DPI(60), this.y - DPI(10), -QUARTER_PI * 0.33, DPI(84), this.y);
+    this.m_legs[1] = new Leg(this.x+DPI(50), this.y, 0, DPI(80), this.y);
+    
+    this.head = new PIXI.Sprite(the_headNormalImage);
+    this.head.anchor.set(0.5);
+    the_scenes[PLAY_STATE].addChild(this.head);
+    
+    this.mandibleTopLayer = new PIXI.AnimatedSprite(the_mandibleEatingTextures);
+    this.mandibleTopLayer.anchor.set(0.5);
+    this.mandibleTopLayer.animationSpeed = 0.2;
+    this.mandibleTopLayer.play();
+    this.mandibleTopLayer.visible = false;
+    
+    this.mandible = new PIXI.Sprite(the_mandibleNormalTextures[0]);
+    this.mandible.anchor.set(0.5);
+    the_scenes[PLAY_STATE].addChild(this.mandible);
+    
+    this.setup();
+  }
+
+  setup()
   {
     this.buttDirection = -0.01;
     this.buttOffset = 0;
@@ -1539,10 +1616,8 @@ function Spider()
       this.m_legs[i].setup();
     }
   }
-  
-  this.setup();
     
-  this.remove = function()
+  remove()
   {
     // Probably dont need to remove all these but easier than resetting for now
     the_scenes[PLAY_STATE].removeChild(this.webStrand);
@@ -1563,7 +1638,7 @@ function Spider()
     }
   }
   
-  this.draw = function()  
+  update(delta)  
   {
     if (this.buttExploding)
     {
@@ -1579,14 +1654,14 @@ function Spider()
           the_babbySpiders[i] = new BabbySpider();
         }
         
-        the_blood = new ParticleSystem();
+        the_blood = new Blood();
           
         // make sure mandible animation renders on top of babbies
         the_scenes[PLAY_STATE].addChild(this.mandibleTopLayer);
       } 
       else
       {
-        this.y += 5;
+        this.y += 5 * delta;
       }
     }  
 
@@ -1653,7 +1728,7 @@ function Spider()
             this.m_legs[i].curlUp(j);
         }
       }
-      this.m_legs[i].draw();
+      this.m_legs[i].update(delta);
     }
     
     this.webStrand.scale.y = this.y;
@@ -1674,8 +1749,9 @@ function Spider()
       for (var j = 0; j < this.m_legs[i].m_segments.length; j++)
       {
         if (this.m_legs[i].m_segments[j].isBeingCarried)
-          this.m_legs[i].m_segments[j].draw(this.m_legs[i].m_isLeft);
+          this.m_legs[i].m_segments[j].update(this.m_legs[i].m_isLeft, delta);
       }
     }
   }
 };
+//#endregion
